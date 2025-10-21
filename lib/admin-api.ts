@@ -1,0 +1,519 @@
+import { Jobseeker, Employer } from './admin-types';
+
+// Auth headers helper
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+};
+
+// Dashboard Statistics Types
+export interface DashboardStats {
+  jobseekers: number;
+  employers: number;
+  activeJobs: number;
+  applications: number;
+  servicesOrders: number;
+  premiumOrders: number;
+}
+
+export interface DashboardAnalytics {
+  recentApplications: number;
+  recentJobs: number;
+  topEmployers: Array<{
+    _id: string;
+    jobCount: number;
+    employerInfo: Array<{
+      companyName: string;
+      email: string;
+    }>;
+  }>;
+  userGrowth: {
+    newJobseekers: number;
+    newEmployers: number;
+    total: number;
+  };
+}
+
+// Users API Types
+export interface UsersApiResponse {
+  users: Jobseeker[] | Employer[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}
+
+export interface UsersApiParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+// API Base URL - adjust according to your backend setup
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
+
+// Users API Functions
+export const getJobseekers = async (params: UsersApiParams = {}): Promise<UsersApiResponse> => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = params;
+
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search,
+      sortBy,
+      sortOrder
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/users/jobseeker?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch jobseekers');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching jobseekers:', error);
+    // Return fallback data in case of error
+    return {
+      users: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalCount: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10
+      }
+    };
+  }
+};
+
+export const getEmployers = async (params: UsersApiParams = {}): Promise<UsersApiResponse> => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = params;
+
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search,
+      sortBy,
+      sortOrder
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/users/employer?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch employers');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching employers:', error);
+    // Return fallback data in case of error
+    return {
+      users: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalCount: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10
+      }
+    };
+  }
+};
+
+// Generic function to get users by type
+export const getUsersByType = async (
+  userType: 'jobseeker' | 'employer',
+  params: UsersApiParams = {}
+): Promise<UsersApiResponse> => {
+  if (userType === 'jobseeker') {
+    return getJobseekers(params);
+  } else {
+    return getEmployers(params);
+  }
+};
+
+// Jobs API Types and Functions
+export interface JobsApiResponse {
+  jobs: ActiveJob[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+  };
+}
+
+export interface JobsApiParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  status?: 'active' | 'paused' | 'closed' | 'all';
+}
+
+export interface ActiveJob {
+  id: string;
+  jobTitle: string;
+  companyName: string;
+  location: string;
+  jobType: string;
+  minimumSalary: number;
+  maximumSalary: number;
+  applicationDeadline: string;
+  status: 'active' | 'paused' | 'closed';
+  jobUrl: string;
+  description?: string;
+  requirements?: string[];
+  benefits?: string[];
+  skills?: string[];
+  views?: number;
+  employerInfo?: {
+    name: string;
+    email: string;
+    logo?: string;
+  };
+  postedDate?: string;
+  lastUpdated?: string;
+}
+
+// Get all jobs (active by default)
+export const getJobs = async (params: JobsApiParams = {}): Promise<JobsApiResponse> => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      status = 'active'
+    } = params;
+
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search,
+      sortBy,
+      sortOrder,
+      status
+    });
+
+    const response = await fetch(`${API_BASE_URL}/admin/jobs?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch jobs');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    // Return fallback data in case of error
+    return {
+      jobs: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 0,
+        totalCount: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10
+      }
+    };
+  }
+};
+
+// Update job status
+export const updateJobStatus = async (jobId: string, status: 'active' | 'paused' | 'closed'): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/jobs/${jobId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to update job status');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error updating job status:', error);
+    return false;
+  }
+};
+
+// Delete job
+export const deleteJob = async (jobId: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/jobs/${jobId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to delete job');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting job:', error);
+    return false;
+  }
+};
+
+// Dashboard Statistics API Functions
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch dashboard statistics');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    // Return fallback data in case of error
+    return {
+      jobseekers: 0,
+      employers: 0,
+      activeJobs: 0,
+      applications: 0,
+      servicesOrders: 0,
+      premiumOrders: 0,
+    };
+  }
+};
+
+export const getDashboardAnalytics = async (): Promise<DashboardAnalytics> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/dashboard/analytics`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch dashboard analytics');
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching dashboard analytics:', error);
+    // Return fallback data in case of error
+    return {
+      recentApplications: 0,
+      recentJobs: 0,
+      topEmployers: [],
+      userGrowth: {
+        newJobseekers: 0,
+        newEmployers: 0,
+        total: 0,
+      },
+    };
+  }
+};
+
+// Simulated API functions for user management
+// In a real application, these would make HTTP requests to your backend
+
+export const blockUser = async (userId: string, userType: 'jobseeker' | 'employer'): Promise<boolean> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // In a real implementation, this would make a PUT/PATCH request to your backend
+  // Example: await fetch(`/api/users/${userId}/block`, { method: 'PATCH', body: JSON.stringify({ status: 'blocked' }) });
+  
+  console.log(`Blocking ${userType} with ID: ${userId}`);
+  
+  // Simulate success response
+  return true;
+};
+
+export const unblockUser = async (userId: string, userType: 'jobseeker' | 'employer'): Promise<boolean> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // In a real implementation, this would make a PUT/PATCH request to your backend
+  // Example: await fetch(`/api/users/${userId}/unblock`, { method: 'PATCH', body: JSON.stringify({ status: 'active' }) });
+  
+  console.log(`Unblocking ${userType} with ID: ${userId}`);
+  
+  // Simulate success response
+  return true;
+};
+
+export const getUserStatus = async (userId: string, userType: 'jobseeker' | 'employer'): Promise<'active' | 'blocked'> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  // In a real implementation, this would make a GET request to your backend
+  // Example: const response = await fetch(`/api/users/${userId}/status`);
+  // return response.json();
+  
+  // For demo purposes, return a random status
+  return Math.random() > 0.5 ? 'active' : 'blocked';
+};
+
+// Example backend API endpoints that would be implemented:
+/*
+// GET /api/admin/users/jobseekers
+export const getJobseekers = async (): Promise<Jobseeker[]> => {
+  const response = await fetch('/api/admin/users/jobseekers');
+  return response.json();
+};
+
+// GET /api/admin/users/employers  
+export const getEmployers = async (): Promise<Employer[]> => {
+  const response = await fetch('/api/admin/users/employers');
+  return response.json();
+};
+
+// PATCH /api/admin/users/:userId/status
+export const updateUserStatus = async (userId: string, status: 'active' | 'blocked'): Promise<boolean> => {
+  const response = await fetch(`/api/admin/users/${userId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  });
+  return response.ok;
+};
+
+// Get individual user by ID
+export const getJobseekerById = async (id: string): Promise<Jobseeker> => {
+  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/jobseeker/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch jobseeker details');
+  }
+  
+  const result = await response.json();
+  return result.data;
+};
+
+export const getEmployerById = async (id: string): Promise<Employer> => {
+  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/employer/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch employer details');
+  }
+  
+  const result = await response.json();
+  return result.data;
+};
+*/
