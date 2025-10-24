@@ -57,7 +57,7 @@ export default function QuotationPage() {
     try {
       setLoading(true)
       
-      const response = await fetch(`http://localhost:4000/api/v1/admin/quotes?page=${currentPage}&limit=${pageSize}`, {
+      const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/quotes?page=${currentPage}&limit=${pageSize}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       })
@@ -97,7 +97,7 @@ export default function QuotationPage() {
   // Update quote status
   const updateQuoteStatus = async (quoteId: string, status: string) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/admin/quotes/${quoteId}`, {
+      const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/quotes/${quoteId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({ status })

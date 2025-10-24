@@ -92,7 +92,7 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
         setJobId(id)
         
         // Fetch job data from API
-        const response = await axios.get(`http://localhost:4000/api/v1/jobs/${id}`)
+        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${id}`)
         if (response.data && response.data.data) {
           setJob(response.data.data)
         } else {
@@ -235,7 +235,7 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
       }
 
       // Submit referral application to backend
-      const response = await axios.post('http://localhost:4000/api/v1/applications/referral', {
+      const response = await axios.post('https://techno-backend-a0s0.onrender.com/api/v1/applications/referral', {
         jobId,
         friendName: formData.friendName,
         email: formData.email,

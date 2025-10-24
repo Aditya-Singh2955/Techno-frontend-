@@ -63,7 +63,7 @@ export const checkEmployerEligibility = createAsyncThunk(
         throw new Error('No authentication token found')
       }
 
-      const response = await axios.get('http://localhost:4000/api/v1/employer/eligibility', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/employer/eligibility', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -98,7 +98,7 @@ export const submitJobPosting = createAsyncThunk(
 
       const mappedJobType = jobTypeMapping[formData.jobType] || 'Full Time'
 
-      const response = await axios.post('http://localhost:4000/api/v1/create/jobs', {
+      const response = await axios.post('https://techno-backend-a0s0.onrender.com/api/v1/create/jobs', {
         title: formData.jobTitle,
         companyName: formData.company,
         location: formData.location,

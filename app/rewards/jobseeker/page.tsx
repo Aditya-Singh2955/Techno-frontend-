@@ -146,7 +146,7 @@ export default function JobSeekerRewardsPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:4000/api/v1/profile/details', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -78,7 +78,7 @@
 //  */
 
 // // API Service Functions
-// const API_BASE_URL = "http://localhost:4000"
+// const API_BASE_URL = "https://techno-backend-a0s0.onrender.com"
 
 // const getAuthToken = () => {
 //   // Try multiple possible token keys that might be used in the app
@@ -932,7 +932,7 @@ interface EmployerProfileData {
   verified: boolean
 }
 
-const API_BASE_URL = "http://localhost:4000/api/v1"
+const API_BASE_URL = "https://techno-backend-a0s0.onrender.com/api/v1"
 
 const getAuthToken = () => {
   return localStorage.getItem("findr_token") || localStorage.getItem("authToken") || localStorage.getItem("token") || ""

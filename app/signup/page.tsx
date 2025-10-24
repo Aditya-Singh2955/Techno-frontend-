@@ -250,7 +250,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, Briefcase, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-const API_BASE_URL = "http://localhost:4000/api/v1"
+const API_BASE_URL = "https://techno-backend-a0s0.onrender.com/api/v1"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
