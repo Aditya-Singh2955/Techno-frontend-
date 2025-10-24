@@ -113,208 +113,209 @@ export default function PostJobPage() {
   }, [clearErrorMessage])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
+
+      <main className="p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
+          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Post a New Job</h1>
-            <p className="text-gray-600">Fill out the form below to create a new job posting</p>
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="w-14 h-14 gradient-bg rounded-2xl flex items-center justify-center card-shadow">
+                <PlusCircle className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">Post a Job</h1>
+                <p className="text-gray-600 text-lg">Create a new job posting to attract top talent</p>
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Job Title */}
-            <Card>
+          <div className="space-y-8">
+            {/* Basic Information */}
+            <Card className="card-shadow border-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-blue-600" />
-                  Job Information
+                <CardTitle className="flex items-center">
+                  <Briefcase className="w-5 h-5 mr-3 text-emerald-600" />
+                  Basic Information
                 </CardTitle>
-                <CardDescription>
-                  Basic details about the position
-                </CardDescription>
+                <CardDescription>Essential details about the position</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="jobTitle">Job Title *</Label>
-                  <Input
-                    id="jobTitle"
-                    value={formData.jobTitle}
-                    onChange={(e) => handleChange('jobTitle', e.target.value)}
-                    placeholder="e.g., Senior Software Engineer"
-                    required
-                  />
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Job Title *</Label>
+                    <Input
+                      id="jobTitle"
+                      value={formData.jobTitle}
+                      onChange={(e) => handleChange("jobTitle", e.target.value)}
+                      placeholder="e.g., Senior Software Engineer"
+                      className="h-11"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company Name *</Label>
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={(e) => handleChange("company", e.target.value)}
+                      placeholder="Your company name"
+                      className="h-11"
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="company">Company Name *</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) => handleChange('company', e.target.value)}
-                    placeholder="e.g., Tech Solutions Inc."
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="location">Location *</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleChange('location', e.target.value)}
-                    placeholder="e.g., Dubai, UAE"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="jobType">Job Type *</Label>
-                  <Select value={formData.jobType} onValueChange={(value) => handleChange('jobType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full-time">Full Time</SelectItem>
-                      <SelectItem value="part-time">Part Time</SelectItem>
-                      <SelectItem value="contract">Contract</SelectItem>
-                      <SelectItem value="remote">Remote</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        id="location"
+                        value={formData.location}
+                        onChange={(e) => handleChange("location", e.target.value)}
+                        placeholder="Dubai, UAE"
+                        className="h-11 pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="jobType">Job Type *</Label>
+                    <Select value={formData.jobType} onValueChange={(value) => handleChange("jobType", value)}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Select job type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full-time">Full-time</SelectItem>
+                        <SelectItem value="part-time">Part-time</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="remote">Remote</SelectItem>
+                        <SelectItem value="hybrid">Hybrid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="experience">Experience Level *</Label>
+                    <Select value={formData.experience} onValueChange={(value) => handleChange("experience", value)}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Select experience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
+                        <SelectItem value="mid">Mid Level (3-5 years)</SelectItem>
+                        <SelectItem value="senior">Senior Level (6-10 years)</SelectItem>
+                        <SelectItem value="lead">Lead/Manager (10+ years)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Salary Information */}
-            <Card>
+            {/* Compensation */}
+            <Card className="card-shadow border-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                  Salary Information
+                <CardTitle className="flex items-center">
+                  <DollarSign className="w-5 h-5 mr-3 text-emerald-600" />
+                  Compensation
                 </CardTitle>
-                <CardDescription>
-                  Compensation details for the position
-                </CardDescription>
+                <CardDescription>Salary range and benefits</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="salaryMin">Minimum Salary (AED)</Label>
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="salaryMin">Minimum Salary (AED) *</Label>
                     <Input
                       id="salaryMin"
                       type="number"
                       value={formData.salaryMin}
-                      onChange={(e) => handleChange('salaryMin', e.target.value)}
-                      placeholder="e.g., 5000"
+                      onChange={(e) => handleChange("salaryMin", e.target.value)}
+                      placeholder="8000"
+                      className="h-11"
+                      required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="salaryMax">Maximum Salary (AED)</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="salaryMax">Maximum Salary (AED) *</Label>
                     <Input
                       id="salaryMax"
                       type="number"
                       value={formData.salaryMax}
-                      onChange={(e) => handleChange('salaryMax', e.target.value)}
-                      placeholder="e.g., 15000"
+                      onChange={(e) => handleChange("salaryMax", e.target.value)}
+                      placeholder="15000"
+                      className="h-11"
+                      required
                     />
                   </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="experience">Experience Level *</Label>
-                  <Select value={formData.experience} onValueChange={(value) => handleChange('experience', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select experience level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
-                      <SelectItem value="mid">Mid Level (3-5 years)</SelectItem>
-                      <SelectItem value="senior">Senior Level (6-10 years)</SelectItem>
-                      <SelectItem value="lead">Lead/Manager (10+ years)</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Job Description */}
-            <Card>
+            {/* Job Details */}
+            <Card className="card-shadow border-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <PlusCircle className="w-5 h-5 text-purple-600" />
-                  Job Description & Requirements
-                </CardTitle>
-                <CardDescription>
-                  Detailed information about the role
-                </CardDescription>
+                <CardTitle>Job Details</CardTitle>
+                <CardDescription>Detailed description and requirements</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
                   <Label htmlFor="description">Job Description *</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    placeholder="Describe the role, responsibilities, and what the candidate will be doing..."
-                    rows={4}
+                    onChange={(e) => handleChange("description", e.target.value)}
+                    placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
+                    rows={6}
                     required
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="requirements">Requirements *</Label>
                   <Textarea
                     id="requirements"
                     value={formData.requirements}
-                    onChange={(e) => handleChange('requirements', e.target.value)}
-                    placeholder="List the key requirements, qualifications, and skills needed (one per line)..."
-                    rows={4}
+                    onChange={(e) => handleChange("requirements", e.target.value)}
+                    placeholder="List the required qualifications, experience, and skills..."
+                    rows={5}
                     required
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="skills">Required Skills</Label>
                   <Input
                     id="skills"
                     value={formData.skills}
-                    onChange={(e) => handleChange('skills', e.target.value)}
-                    placeholder="e.g., React, Node.js, Python, SQL (comma separated)"
+                    onChange={(e) => handleChange("skills", e.target.value)}
+                    placeholder="e.g., React, Node.js, Project Management (comma-separated)"
+                    className="h-11"
                   />
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Application Deadline */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-orange-600" />
-                  Application Details
-                </CardTitle>
-                <CardDescription>
-                  When should applications close?
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="deadline">Application Deadline *</Label>
-                  <Input
-                    id="deadline"
-                    type="date"
-                    value={formData.deadline}
-                    onChange={(e) => handleChange('deadline', e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="deadline"
+                      type="date"
+                      value={formData.deadline}
+                      onChange={(e) => handleChange("deadline", e.target.value)}
+                      className="h-11 pl-10"
+                      required
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Error Display */}
             {error && (
-              <Card className="border-red-200 bg-red-50">
+              <Card className="border-red-200 bg-red-50 card-shadow border-0">
                 <CardContent className="pt-6">
                   <p className="text-red-600 text-sm">{error}</p>
                 </CardContent>
@@ -322,26 +323,18 @@ export default function PostJobPage() {
             )}
 
             {/* Submit Button */}
-            <div className="flex justify-end space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || isLoading}
-                className="bg-blue-600 hover:bg-blue-700"
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleSubmit}
+                disabled={isSubmitting || isLoading} 
+                className="gradient-bg text-white px-12 py-3 text-lg h-12"
               >
                 {isSubmitting ? "Posting Job..." : "Post Job"}
               </Button>
             </div>
-          </form>
+          </div>
         </div>
-      </div>
+      </main>
 
       {/* Profile Completion Dialog */}
       <EmployerProfileCompletionDialog

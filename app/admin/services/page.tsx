@@ -68,7 +68,7 @@ export default function AdminServicesPage() {
       const data = await response.json();
       if (data.success) {
         setServices(data.data);
-        setTotalServices(data.pagination.totalServices);
+        setTotalServices(data.pagination.totalCount);
       } else {
         throw new Error(data.message || 'Failed to fetch services');
       }
