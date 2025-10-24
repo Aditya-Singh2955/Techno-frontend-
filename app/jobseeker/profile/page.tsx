@@ -33,7 +33,7 @@ import { FileUpload } from "@/components/file-upload"
 import { useAuth } from "@/contexts/auth-context"
 import { FollowUs } from "@/components/follow-us"
 
-const API_BASE_URL = "https://techno-backend-a0s0.onrender.com"
+const API_BASE_URL = "http://localhost:4000"
 
 interface ProfileData {
   personalInfo: {

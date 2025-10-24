@@ -6,6 +6,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { CandidateProfileView } from "@/components/candidate-profile"
 import { CompanyProfileView } from "@/components/company-profile"
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+
 export default function AdminUserDetailPage() {
   const params = useParams() as { userType: string; id: string }
   const router = useRouter()
@@ -14,28 +16,31 @@ export default function AdminUserDetailPage() {
   const [userData, setUserData] = useState<any | null>(null)
 
   useEffect(() => {
-    const fetchData = () => {
+    const fetchUserProfile = async () => {
       try {
         setIsLoading(true)
         setError(null)
         
-        // Get user data from sessionStorage (set by the admin users page)
-        const storedUser = sessionStorage.getItem('admin_view_user')
-        if (storedUser) {
-          const user = JSON.parse(storedUser)
-          setUserData(user)
+        const response = await fetch(`${API_BASE_URL}/admin/users/${params.userType}/${params.id}/profile`)
+        const result = await response.json()
+        
+        if (result.success) {
+          setUserData(result.data)
         } else {
-          setError("User data not found")
+          setError(result.message || "Failed to load user profile")
         }
       } catch (e) {
+        console.error("Error fetching user profile:", e)
         setError("Failed to load user details")
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchData()
-  }, [])
+    if (params.userType && params.id) {
+      fetchUserProfile()
+    }
+  }, [params.userType, params.id])
 
   if (isLoading) {
     return (
@@ -63,30 +68,30 @@ export default function AdminUserDetailPage() {
   // Map API shape to read-only view props
   if (params.userType === "jobseeker") {
     const candidate = {
-      name: userData.fullName || userData.name || "N/A",
-      email: userData.emailAddress || userData.email || "N/A",
-      phone: userData.phoneNumber || userData.phone || "N/A",
+      name: userData.fullName || "N/A",
+      email: userData.email || "N/A",
+      phone: userData.phoneNumber || "N/A",
       location: userData.location || "N/A",
       dateOfBirth: userData.dateOfBirth || "N/A",
       nationality: userData.nationality || "N/A",
-      summary: userData.professionalSummary || userData.summary || "N/A",
+      summary: userData.professionalSummary || "N/A",
       currentRole: userData.currentRole || "N/A",
       company: userData.company || "N/A",
       experience: (userData.yearsOfExperience?.toString?.() || "0") + " years",
       industry: userData.industry || "N/A",
-      degree: userData.highestDegree || userData.degree || "N/A",
+      degree: userData.highestDegree || "N/A",
       institution: userData.institution || "N/A",
-      year: userData.yearOfGraduation || userData.year || "N/A",
-      grade: userData.gradeCgpa || userData.grade || "N/A",
+      year: userData.yearOfGraduation || "N/A",
+      grade: userData.gradeCgpa || "N/A",
       skills: Array.isArray(userData.skills) ? userData.skills.join(", ") : (userData.skills || "N/A"),
       certifications: Array.isArray(userData.certifications) ? userData.certifications.join(", ") : (userData.certifications || "N/A"),
       jobType: userData.jobType || "N/A",
       salaryExpectation: userData.salaryExpectation || "N/A",
       preferredLocation: userData.preferredLocation || "N/A",
       availability: userData.availability || "N/A",
-      appliedFor: userData.appliedFor || "N/A",
-      appliedDate: userData.appliedDate || "N/A",
-      status: userData.status || "Active",
+      appliedFor: "", // Remove for admin view
+      appliedDate: "", // Remove for admin view
+      status: userData.loginStatus || "Active",
       resumeFilename: userData.resumeFilename || "N/A",
       coverLetter: userData.coverLetter || "N/A",
       documentsList: userData.documentsList || [],
@@ -102,22 +107,22 @@ export default function AdminUserDetailPage() {
     industry: userData.industry || "N/A",
     teamSize: userData.teamSize || "N/A",
     foundedYear: (userData.foundedYear?.toString?.() || "N/A"),
-    about: userData.about || userData.description || "N/A",
+    about: userData.about || "N/A",
     location: {
       city: userData.city || "N/A",
       country: userData.country || "N/A",
       officeAddress: userData.officeAddress || "N/A",
     },
-    website: userData.website || userData.companyWebsite || "N/A",
-    verified: Boolean(userData.verified),
-    logo: userData.logo || userData.companyLogo || "",
+    website: userData.website || "N/A",
+    verified: Boolean(userData.verificationStatus === 'verified'),
+    logo: userData.companyLogo || "",
     specialties: userData.specialties || [],
     achievements: userData.achievements || [],
     workCulture: userData.workCulture || [],
     socialLinks: userData.socialLinks || {},
     activeJobsCount: userData.activeJobsCount || 0,
     totalJobsPosted: userData.totalJobsPosted || 0,
-    memberSince: userData.memberSince || "N/A",
+    memberSince: userData.memberSince ? new Date(userData.memberSince).toLocaleDateString() : "N/A",
   }
   return <CompanyProfileView company={company} />
 }

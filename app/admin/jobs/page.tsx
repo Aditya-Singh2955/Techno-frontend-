@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { AdminDataTable } from "@/components/admin-data-table"
-import { getJobs, updateJobStatus, deleteJob, type ActiveJob, type JobsApiResponse } from "@/lib/admin-api"
+import { getJobs, updateJobStatus, type ActiveJob, type JobsApiResponse } from "@/lib/admin-api"
 import { useRouter } from "next/navigation"
-import { Eye, Pause, Trash2, Download, RefreshCw } from "lucide-react"
+import { Eye, Pause, X, Download, RefreshCw } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -129,24 +129,25 @@ export default function AdminJobsPage() {
     }
   }
 
-  const handleDeleteJob = async (job: ActiveJob) => {
+  const handleCloseJob = async (job: ActiveJob) => {
     try {
-      const success = await deleteJob(job.id)
+      const success = await updateJobStatus(job.id, 'closed')
       
       if (success) {
-        setJobs(prevJobs => prevJobs.filter(j => j.id !== job.id))
-        toast.success('Job deleted successfully')
-        // Update pagination count
-        setPagination(prev => ({
-          ...prev,
-          totalCount: prev.totalCount - 1
-        }))
+        setJobs(prevJobs => 
+          prevJobs.map(j => 
+            j.id === job.id 
+              ? { ...j, status: 'closed' }
+              : j
+          )
+        )
+        toast.success('Job closed successfully')
       } else {
-        toast.error('Failed to delete job')
+        toast.error('Failed to close job')
       }
     } catch (error) {
-      console.error('Error deleting job:', error)
-      toast.error('Failed to delete job')
+      console.error('Error closing job:', error)
+      toast.error('Failed to close job')
     }
   }
 
@@ -175,37 +176,39 @@ export default function AdminJobsPage() {
         <span className="hidden sm:inline">{job.status === 'active' ? 'Pause Job' : 'Activate Job'}</span>
         <span className="sm:hidden">{job.status === 'active' ? 'Pause' : 'Activate'}</span>
       </Button>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center justify-center gap-1 text-red-600 hover:text-red-700 w-full sm:w-auto"
-            disabled={isLoading}
-          >
-            <Trash2 className="w-3 h-3" />
-            <span className="hidden sm:inline">Delete Job</span>
-            <span className="sm:hidden">Delete</span>
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Job</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{job.jobTitle}" at {job.companyName}? This action cannot be undone and will also delete all related applications.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleDeleteJob(job)}
-              className="bg-red-600 hover:bg-red-700"
+      {job.status !== 'closed' && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center justify-center gap-1 text-orange-600 hover:text-orange-700 w-full sm:w-auto"
+              disabled={isLoading}
             >
-              Yes, Delete Job
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <X className="w-3 h-3" />
+              <span className="hidden sm:inline">Close Job</span>
+              <span className="sm:hidden">Close</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Close Job</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to close "{job.jobTitle}" at {job.companyName}? This will prevent new applications but keep existing applications.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleCloseJob(job)}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                Yes, Close Job
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   )
 

@@ -59,12 +59,12 @@ export function CompanyProfileView({ company }: CompanyProfileViewProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Navbar />
+      {/* <Navbar /> */}
 
       <main className="p-4 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header with Back Button */}
-          <div className="flex items-center justify-between">
+          {/* <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               className="flex items-center text-blue-600 hover:text-blue-800 px-0"
@@ -73,7 +73,7 @@ export function CompanyProfileView({ company }: CompanyProfileViewProps) {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Previous Page
             </Button>
-          </div>
+          </div> */}
 
           {/* Company Header Card */}
           <Card className="card-shadow border-0 bg-gradient-to-r from-blue-50 to-indigo-100">

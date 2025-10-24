@@ -10,7 +10,7 @@ export interface Jobseeker {
     yearsOfExperience: number;
     industry: string;
     profileUrl: string;
-    status?: 'active' | 'blocked';
+    loginStatus?: 'active' | 'blocked';
   }
   
   export interface Employer {
@@ -23,7 +23,7 @@ export interface Jobseeker {
     teamSize: string;
     foundedYear: number;
     profileUrl: string;
-    status?: 'active' | 'blocked';
+    loginStatus?: 'active' | 'blocked';
   }
   
   export interface ActiveJob {

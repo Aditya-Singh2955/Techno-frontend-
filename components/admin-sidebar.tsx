@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Briefcase, FileText, Star, FileCheck } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { LayoutDashboard, Users, Briefcase, FileText, Star, FileCheck, LogOut } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/hooks/use-toast"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -14,7 +16,34 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-
+  const router = useRouter()
+  const auth = useAuth()
+  const toast = useToast()
+  
+  const handleLogout = () => {
+    try {
+      // Show logout confirmation toast
+      toast.toast({
+        title: "Logging Out",
+        description: "You are being logged out...",
+      })
+      
+      // Call the auth logout function
+      auth.logout()
+      
+      // Force page refresh after logout
+      setTimeout(() => {
+        window.location.href = "/login/admin"
+      }, 300)
+    } catch (error) {
+      console.error('Error during logout:', error)
+      toast.toast({
+        title: "Logout Error",
+        description: "There was an error during logout. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
   return (
     <div className="h-full flex flex-col">
       {/* Logo/Brand */}
@@ -66,6 +95,13 @@ export function AdminSidebar() {
             <span className="text-xs text-green-600 font-medium">All systems operational</span>
           </div>
         </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group"
+        >
+          <LogOut className="w-5 h-5 transition-transform group-hover:scale-110" />
+          <span className="font-medium">Logout</span>
+        </button>
       </div>
     </div>
   )

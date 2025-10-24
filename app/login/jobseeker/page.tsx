@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { User, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import { BlockedUserPopup } from "@/components/blocked-user-popup"
 
 export default function JobSeekerLoginPage() {
   const [formData, setFormData] = useState({
@@ -23,6 +24,7 @@ export default function JobSeekerLoginPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showBlockedPopup, setShowBlockedPopup] = useState(false)
   const { login } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
@@ -40,12 +42,17 @@ export default function JobSeekerLoginPage() {
         })
         router.push("/jobseeker/dashboard")
       }
-    } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive",
-      })
+    } catch (error: any) {
+      // Check if user is blocked
+      if (error?.message?.includes("blocked")) {
+        setShowBlockedPopup(true)
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Please check your credentials and try again.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -121,7 +128,7 @@ export default function JobSeekerLoginPage() {
                     Remember me
                   </Label>
                 </div>
-                <Link href="#" className="text-sm text-emerald-600 hover:underline">
+                <Link href="/login/forgot-password" className="text-sm text-emerald-600 hover:underline">
                   Forgot Password?
                 </Link>
               </div>
@@ -142,6 +149,11 @@ export default function JobSeekerLoginPage() {
           </CardContent>
         </Card>
       </div>
+
+      <BlockedUserPopup 
+        isOpen={showBlockedPopup} 
+        onClose={() => setShowBlockedPopup(false)} 
+      />
     </div>
   )
 }

@@ -58,12 +58,12 @@ export function CandidateProfileView({ candidate }: { candidate: CandidateProfil
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Navbar />
+      {/* <Navbar /> */}
 
       <main className="p-4 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header with Back Button */}
-          <div className="flex items-center justify-between">
+          {/* <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               className="flex items-center text-blue-600 hover:text-blue-800 px-0"
@@ -82,7 +82,7 @@ export function CandidateProfileView({ candidate }: { candidate: CandidateProfil
                 Download CV
               </Button>
             </div>
-          </div>
+          </div> */}
 
           {/* Candidate Header Card */}
           <Card className="card-shadow border-0 bg-gradient-to-r from-emerald-50 to-emerald-100">
@@ -112,11 +112,13 @@ export function CandidateProfileView({ candidate }: { candidate: CandidateProfil
                     </div>
                   </div>
                 </div>
-                <div className="text-center lg:text-right">
-                  <div className="text-sm text-emerald-700 mb-2">Applied for</div>
-                  <div className="font-semibold text-emerald-900 mb-1">{candidate.appliedFor}</div>
-                  <div className="text-xs text-emerald-600">Applied on {candidate.appliedDate}</div>
-                </div>
+                {candidate.appliedFor && candidate.appliedDate && (
+                  <div className="text-center lg:text-right">
+                    <div className="text-sm text-emerald-700 mb-2">Applied for</div>
+                    <div className="font-semibold text-emerald-900 mb-1">{candidate.appliedFor}</div>
+                    <div className="text-xs text-emerald-600">Applied on {candidate.appliedDate}</div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -1,10 +1,8 @@
 import { Jobseeker, Employer } from './admin-types';
 
-// Auth headers helper
+// Auth headers helper - Note: Admin routes don't use authentication (following existing pattern)
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
   return {
-    'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
 };
@@ -59,7 +57,7 @@ export interface UsersApiParams {
 }
 
 // API Base URL - adjust according to your backend setup
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 // Users API Functions
 export const getJobseekers = async (params: UsersApiParams = {}): Promise<UsersApiResponse> => {
@@ -82,11 +80,7 @@ export const getJobseekers = async (params: UsersApiParams = {}): Promise<UsersA
 
     const response = await fetch(`${API_BASE_URL}/admin/users/jobseeker?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -137,11 +131,7 @@ export const getEmployers = async (params: UsersApiParams = {}): Promise<UsersAp
 
     const response = await fetch(`${API_BASE_URL}/admin/users/employer?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -254,11 +244,7 @@ export const getJobs = async (params: JobsApiParams = {}): Promise<JobsApiRespon
 
     const response = await fetch(`${API_BASE_URL}/admin/jobs?${queryParams}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -294,11 +280,7 @@ export const updateJobStatus = async (jobId: string, status: 'active' | 'paused'
   try {
     const response = await fetch(`${API_BASE_URL}/admin/jobs/${jobId}/status`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
 
@@ -324,11 +306,7 @@ export const deleteJob = async (jobId: string): Promise<boolean> => {
   try {
     const response = await fetch(`${API_BASE_URL}/admin/jobs/${jobId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -353,11 +331,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -389,11 +363,7 @@ export const getDashboardAnalytics = async (): Promise<DashboardAnalytics> => {
   try {
     const response = await fetch(`${API_BASE_URL}/admin/dashboard/analytics`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -427,29 +397,57 @@ export const getDashboardAnalytics = async (): Promise<DashboardAnalytics> => {
 // In a real application, these would make HTTP requests to your backend
 
 export const blockUser = async (userId: string, userType: 'jobseeker' | 'employer'): Promise<boolean> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // In a real implementation, this would make a PUT/PATCH request to your backend
-  // Example: await fetch(`/api/users/${userId}/block`, { method: 'PATCH', body: JSON.stringify({ status: 'blocked' }) });
-  
-  console.log(`Blocking ${userType} with ID: ${userId}`);
-  
-  // Simulate success response
-  return true;
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ status: 'blocked' }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to block user');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    return false;
+  }
 };
 
 export const unblockUser = async (userId: string, userType: 'jobseeker' | 'employer'): Promise<boolean> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // In a real implementation, this would make a PUT/PATCH request to your backend
-  // Example: await fetch(`/api/users/${userId}/unblock`, { method: 'PATCH', body: JSON.stringify({ status: 'active' }) });
-  
-  console.log(`Unblocking ${userType} with ID: ${userId}`);
-  
-  // Simulate success response
-  return true;
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      headers: {
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ status: 'active' }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to unblock user');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    return false;
+  }
 };
 
 export const getUserStatus = async (userId: string, userType: 'jobseeker' | 'employer'): Promise<'active' | 'blocked'> => {
@@ -492,7 +490,7 @@ export const updateUserStatus = async (userId: string, status: 'active' | 'block
 
 // Get individual user by ID
 export const getJobseekerById = async (id: string): Promise<Jobseeker> => {
-  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/jobseeker/${id}`, {
+  const response = await fetch(`http://localhost:4000/api/v1/admin/users/jobseeker/${id}`, {
     headers: getAuthHeaders(),
   });
   
@@ -505,7 +503,7 @@ export const getJobseekerById = async (id: string): Promise<Jobseeker> => {
 };
 
 export const getEmployerById = async (id: string): Promise<Employer> => {
-  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/employer/${id}`, {
+  const response = await fetch(`http://localhost:4000/api/v1/admin/users/employer/${id}`, {
     headers: getAuthHeaders(),
   });
   

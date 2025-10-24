@@ -80,7 +80,7 @@ export function AdminDataTable({
     if (key.includes('Date') && value) {
       return new Date(value).toLocaleDateString()
     }
-    if (key.includes('Status') || key === 'status') {
+    if (key.includes('Status') || key === 'loginStatus') {
       return (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
           value === 'active' ? 'bg-green-100 text-green-800' :

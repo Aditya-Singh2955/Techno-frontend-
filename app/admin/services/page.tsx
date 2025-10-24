@@ -47,7 +47,8 @@ export default function AdminServicesPage() {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/services?page=${currentPage}&limit=${pageSize}&buyerType=${activeTab === 'all' ? 'all' : activeTab}`, {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+      const response = await fetch(`${API_BASE_URL}/admin/services?page=${currentPage}&limit=${pageSize}&buyerType=${activeTab === 'all' ? 'all' : activeTab}`, {
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
@@ -82,7 +83,8 @@ export default function AdminServicesPage() {
   // Update service status
   const updateServiceStatus = async (serviceId: string, newStatus: string) => {
     try {
-      const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/services/${serviceId}`, {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+      const response = await fetch(`${API_BASE_URL}/admin/services/${serviceId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

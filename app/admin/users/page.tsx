@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { AdminDataTable } from "@/components/admin-data-table"
 import { Jobseeker, Employer } from "@/lib/admin-types"
-import { blockUser, getUsersByType, type UsersApiResponse } from "@/lib/admin-api"
+import { blockUser, unblockUser, getUsersByType, type UsersApiResponse } from "@/lib/admin-api"
 import { useRouter } from "next/navigation"
 import { Eye, Download, Ban, RefreshCw } from "lucide-react"
 import * as XLSX from 'xlsx'
@@ -91,7 +91,7 @@ export default function AdminUsersPage() {
     { key: 'company', label: 'Company', sortable: true },
     { key: 'yearsOfExperience', label: 'Years of Experience', sortable: true },
     { key: 'industry', label: 'Industry', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
+    { key: 'loginStatus', label: 'Login Status', sortable: true },
   ]
 
   const employerColumns = [
@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
     { key: 'industry', label: 'Industry', sortable: true },
     { key: 'teamSize', label: 'Team Size', sortable: true },
     { key: 'foundedYear', label: 'Founded Year', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
+    { key: 'loginStatus', label: 'Login Status', sortable: true },
   ]
 
   const handleExportToExcel = () => {
@@ -133,19 +133,26 @@ export default function AdminUsersPage() {
       const success = await blockUser(userId, userType);
       
       if (success) {
-        // Update local state only if API call succeeds
-        if (userType === 'jobseeker') {
-          setJobseekers(prev => prev.map(user => 
-            user.id === userId ? { ...user, status: 'blocked' as const } : user
-          ))
-        } else {
-          setEmployers(prev => prev.map(user => 
-            user.id === userId ? { ...user, status: 'blocked' as const } : user
-          ))
-        }
+        // Refresh the data to get the updated status from the server
+        await fetchUsers(userType, pagination.currentPage);
       }
     } catch (error) {
       console.error('Failed to block user:', error);
+      // In a real app, you might want to show a toast notification here
+    }
+  }
+
+  const handleUnblockUser = async (userId: string, userType: 'jobseeker' | 'employer') => {
+    try {
+      // Call the API to unblock the user
+      const success = await unblockUser(userId, userType);
+      
+      if (success) {
+        // Refresh the data to get the updated status from the server
+        await fetchUsers(userType, pagination.currentPage);
+      }
+    } catch (error) {
+      console.error('Failed to unblock user:', error);
       // In a real app, you might want to show a toast notification here
     }
   }
@@ -166,7 +173,7 @@ export default function AdminUsersPage() {
         <Eye className="w-3 h-3" />
         Know More
       </Button>
-      {jobseeker.status !== 'blocked' && (
+      {jobseeker.loginStatus !== 'blocked' ? (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -196,6 +203,36 @@ export default function AdminUsersPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      ) : (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1 text-green-600 border-green-600 hover:bg-green-50"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Unblock
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unblock User</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to unblock {jobseeker.fullName}? This will allow them to access the portal again.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleUnblockUser(jobseeker.id, 'jobseeker')}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Yes, Unblock User
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   )
@@ -216,7 +253,7 @@ export default function AdminUsersPage() {
         <Eye className="w-3 h-3" />
         Know More
       </Button>
-      {employer.status !== 'blocked' && (
+      {employer.loginStatus !== 'blocked' ? (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -242,6 +279,36 @@ export default function AdminUsersPage() {
                 className="bg-red-600 hover:bg-red-700"
               >
                 Yes, Block User
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1 text-green-600 border-green-600 hover:bg-green-50"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Unblock
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unblock User</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to unblock {employer.companyName}? This will allow them to access the portal again.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleUnblockUser(employer.id, 'employer')}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Yes, Unblock User
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

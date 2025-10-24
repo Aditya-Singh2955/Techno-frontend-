@@ -30,7 +30,7 @@ interface AuthContextType {
     designation?: string;
     [key: string]: any;
   }) => Promise<boolean>
-  logout: () => void
+  logout: (shouldRefresh?: boolean) => void
   isLoading: boolean
   error: string | null
   updateProfile: (data: any) => Promise<boolean>
@@ -158,6 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true
     } catch (error: any) {
       const errorData = handleApiError(error)
+      
+      // Check if user is blocked
+      if (error.response?.status === 403 && error.response?.data?.blocked) {
+        setError("Your account has been blocked. Please contact support.")
+        return false
+      }
+      
       setError(errorData.message)
       return false
     } finally {
@@ -232,7 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
+  const logout = (shouldRefresh = false) => {
+    // Get user type before clearing state
+    const currentUserType = user?.type
+    
     // Clear user state first
     setUser(null)
     setError(null)
@@ -256,8 +266,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Force a small delay to ensure state updates propagate
     setTimeout(() => {
-      // Redirect to login page
-      router.replace("/login")
+      if (shouldRefresh) {
+        // Force page refresh
+        window.location.href = currentUserType === "admin" ? "/login/admin" : "/login"
+      } else {
+        // Redirect to appropriate login page based on user type
+        if (currentUserType === "admin") {
+          router.replace("/login/admin")
+        } else {
+          router.replace("/login")
+        }
+      }
     }, 100)
   }
 

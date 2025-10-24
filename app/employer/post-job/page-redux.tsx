@@ -15,9 +15,8 @@ import { useRouter } from "next/navigation"
 import { EmployerProfileCompletionDialog } from "@/components/ui/employer-profile-completion-dialog"
 import { useJobPosting } from "@/lib/features/jobPosting/useJobPosting"
 
-export default function PostJobPage() {
+export default function PostJobPageRedux() {
   const [showProfileDialog, setShowProfileDialog] = useState(false)
-  const [profileCompletionResult, setProfileCompletionResult] = useState<any>(null)
   const { toast } = useToast()
   const router = useRouter()
   
@@ -64,12 +63,6 @@ export default function PostJobPage() {
       }
 
       if (!canPostJob) {
-        setProfileCompletionResult({
-          percentage: profileCompletion,
-          canPostJob: canPostJob,
-          missingFields: missingFields,
-          companyName: companyName
-        })
         setShowProfileDialog(true)
         return
       }
@@ -176,11 +169,11 @@ export default function PostJobPage() {
                       <SelectValue placeholder="Select job type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="full-time">Full Time</SelectItem>
-                      <SelectItem value="part-time">Part Time</SelectItem>
+                      <SelectItem value="full-time">Full-time</SelectItem>
+                      <SelectItem value="part-time">Part-time</SelectItem>
                       <SelectItem value="contract">Contract</SelectItem>
-                      <SelectItem value="remote">Remote</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                      <SelectItem value="freelance">Freelance</SelectItem>
+                      <SelectItem value="internship">Internship</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -347,11 +340,10 @@ export default function PostJobPage() {
       <EmployerProfileCompletionDialog
         open={showProfileDialog}
         onOpenChange={setShowProfileDialog}
-        completionPercentage={profileCompletionResult?.percentage || profileCompletion}
-        canPostJob={profileCompletionResult?.canPostJob || canPostJob}
-        missingFields={profileCompletionResult?.missingFields || missingFields}
-        companyName={profileCompletionResult?.companyName || companyName}
-        onCompleteProfile={handleProfileDialogClose}
+        profileCompletion={profileCompletion}
+        missingFields={missingFields}
+        companyName={companyName}
+        onComplete={handleProfileDialogClose}
       />
     </div>
   )

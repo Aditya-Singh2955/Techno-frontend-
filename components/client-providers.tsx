@@ -2,6 +2,7 @@
 
 import { AuthProvider } from "@/contexts/auth-context"
 import { CartProvider } from "@/contexts/cart-context"
+import { ReduxProvider } from "@/components/providers/redux-provider"
 import { Toaster } from "@/components/ui/toaster"
 
 interface ClientProvidersProps {
@@ -10,12 +11,14 @@ interface ClientProvidersProps {
 
 export function ClientProviders({ children }: ClientProvidersProps) {
   return (
-    <AuthProvider>
-      <CartProvider>
-        {children}
-        <Toaster />
-      </CartProvider>
-    </AuthProvider>
+    <ReduxProvider>
+      <AuthProvider>
+        <CartProvider>
+          {children}
+          <Toaster />
+        </CartProvider>
+      </AuthProvider>
+    </ReduxProvider>
   )
 }
 

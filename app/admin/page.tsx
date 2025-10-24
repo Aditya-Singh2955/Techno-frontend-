@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
       label: "Applications", 
       value: stats?.applications || 0, 
       icon: FileText, 
-      route: "/admin/applications",
+      route: "/admin/jobs",
       color: "bg-orange-500",
     },
     { 
