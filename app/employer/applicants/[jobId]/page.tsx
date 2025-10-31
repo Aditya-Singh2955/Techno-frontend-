@@ -54,6 +54,8 @@ interface Applicant {
   rating?: number;
   viewedByEmployer: boolean;
   employerNotes?: string;
+  employerComments?: string;
+  reviewTimestamp?: string;
   interviewDate?: string;
 }
 
@@ -65,7 +67,7 @@ interface JobDetails {
 }
 
 const statusOptions = [
-  { label: "All", value: "" },
+  { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Shortlisted", value: "shortlisted" },
   { label: "Interview Scheduled", value: "interview_scheduled" },
@@ -105,7 +107,7 @@ export default function JobApplicantsPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
@@ -169,7 +171,7 @@ export default function JobApplicantsPage() {
       const matchesSearch =
         app.applicantDetails?.name?.toLowerCase().includes(search.toLowerCase()) ||
         app.applicantDetails?.email?.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter ? app.status === statusFilter : true;
+      const matchesStatus = statusFilter && statusFilter !== "all" ? app.status === statusFilter : true;
       return matchesSearch && matchesStatus;
     });
   }, [applicants, search, statusFilter]);
@@ -239,33 +241,6 @@ export default function JobApplicantsPage() {
     }
   };
 
-  const rateApplicant = async (applicationId: string, rating: number) => {
-    try {
-      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
-      
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}/rate`, {
-        rating
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-
-      toast({
-        title: "Success",
-        description: "Applicant rated successfully.",
-      });
-      
-      fetchApplicants();
-    } catch (error) {
-      console.error('Error rating applicant:', error);
-      toast({
-        title: "Error",
-        description: "Failed to rate applicant.",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
@@ -403,27 +378,6 @@ export default function JobApplicantsPage() {
                       )}
                     </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center mb-4">
-                      <span className="text-sm text-gray-600 mr-2">Rating:</span>
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => rateApplicant(applicant._id, star)}
-                            className="p-1"
-                          >
-                            <Star 
-                              className={`w-4 h-4 ${
-                                applicant.rating && applicant.rating >= star 
-                                  ? 'fill-yellow-400 text-yellow-400' 
-                                  : 'text-gray-300'
-                              }`} 
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
 
                     {/* Comments Section */}
                     {applicant.employerComments && (
@@ -440,27 +394,16 @@ export default function JobApplicantsPage() {
 
                     {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-2">
-                      {applicant.resume && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="col-span-2"
-                          onClick={() => window.open(applicant.resume, '_blank')}
-                        >
-                          <FileText className="w-4 h-4 mr-1" />
-                          View Resume
-                        </Button>
-                      )}
-                      
-                      {/* Comprehensive Review Button */}
                       <Button
                         size="sm"
-                        className="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => openReviewDialog(applicant)}
+                        variant="outline"
+                        className="col-span-2"
+                        onClick={() => router.push(`/employer/applicants/profile/${applicant._id}`)}
                       >
-                        <Star className="w-4 h-4 mr-1" />
-                        Complete Review
+                        <User className="w-4 h-4 mr-1" />
+                        View Profile
                       </Button>
+                      
                       {applicant.status === 'pending' && (
                         <>
                           <Button

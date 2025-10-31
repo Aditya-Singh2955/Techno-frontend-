@@ -114,9 +114,12 @@ export default function JobSeekerRewardsPage() {
     if (profile?.socialLinks?.twitterX) completed++;
 
     const percentage = Math.round((completed / totalFields) * 100);
-    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage
+    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+    const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
+    const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
     const deductedPoints = profile?.deductedPoints || 0;
-    const availablePoints = Math.max(0, calculatedPoints - deductedPoints);
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return { percentage, points: availablePoints };
   };
@@ -128,10 +131,10 @@ export default function JobSeekerRewardsPage() {
     const hasEmploymentVisa = profile?.employmentVisa === "yes";
     const hasEmiratesId = !!profile?.emirateId;
 
-    if (points >= 250) return "Platinum";
+    if (points >= 500) return "Platinum";
     else if (isEmirati || yearsExp >= 10) return "Gold";
     else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) return "Silver";
-    else if (yearsExp <= 4 && !hasEmploymentVisa) return "Blue";
+    else if (yearsExp <= 4 || hasEmploymentVisa) return "Blue";
     else return "Silver";
   };
 

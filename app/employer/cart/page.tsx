@@ -39,18 +39,53 @@ export default function EmployerCartPage() {
     });
   };
 
-  const handleGetQuote = () => {
-    // Compose service list and user details
-    const serviceList = cart.map((item) => `- ${item.title}`).join("\n");
-    const userInfo = user ? `Name: ${user.name || "N/A"}\nEmail: ${user.email || "N/A"}` : "(User not logged in)";
-    // Simulate notification (replace with API call as needed)
-    toast({
-      title: "Your quote request has been submitted.",
-      description: "Our team will contact you shortly.",
-    });
-    // Optionally clear cart after quote
-    // clearCart();
-    router.push("/employer/cart/in-progress");
+  const handleGetQuote = async () => {
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please log in to request a quote.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send one quote request per selected service (aligns with single-service API)
+      await Promise.all(
+        cart.map(async (item) => {
+          const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/quotes', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              service: item.title,
+              requirements: `Quote request for ${item.title} - ${item.description || ''}`.trim(),
+              budget: 'To be discussed',
+              timeline: 'Flexible',
+            }),
+          });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Failed to submit quote for ${item.title}`);
+          }
+        })
+      );
+
+      toast({
+        title: "Your quote request has been submitted.",
+        description: "Our team will contact you shortly.",
+      });
+      router.push("/employer/cart/in-progress");
+    } catch (error) {
+      toast({
+        title: "Request Failed",
+        description: "Failed to submit quote request. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   /* ----------------------------------------------------------------------- */

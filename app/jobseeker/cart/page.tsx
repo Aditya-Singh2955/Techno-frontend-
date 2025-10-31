@@ -61,9 +61,12 @@ export default function CartPage() {
     if (profile?.socialLinks?.twitterX) completed++;
 
     const percentage = Math.round((completed / totalFields) * 100);
-    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage
+    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+    const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
+    const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
     const deductedPoints = profile?.deductedPoints || 0;
-    const availablePoints = Math.max(0, calculatedPoints - deductedPoints);
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return availablePoints;
   };

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Trophy, Star, Award, Crown, Users, Briefcase, Gift, ArrowRight, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { TOP_200_COMPANIES } from "@/lib/utils"
 
 const employerTiers = [
   {
@@ -123,15 +124,15 @@ export default function EmployerRewardsPage() {
     // Base points for being an employer
     points += 50;
     
-    // Points for company profile completion
-    if (profile?.companyName) points += 10;
-    if (profile?.companyEmail) points += 10;
-    if (profile?.phoneNumber) points += 10;
-    if (profile?.website) points += 10;
-    if (profile?.industry) points += 10;
-    if (profile?.teamSize) points += 10;
-    if (profile?.foundedYear) points += 10;
-    if (profile?.description) points += 10;
+    // Points for company profile completion (total 200 points for complete profile)
+    if (profile?.companyName) points += 25;
+    if (profile?.companyEmail) points += 25;
+    if (profile?.phoneNumber) points += 25;
+    if (profile?.website) points += 25;
+    if (profile?.industry) points += 25;
+    if (profile?.teamSize) points += 25;
+    if (profile?.foundedYear) points += 25;
+    if (profile?.description) points += 25;
     
     // Points for posted jobs (if available)
     const postedJobs = profile?.postedJobs?.length || 0;
@@ -143,7 +144,7 @@ export default function EmployerRewardsPage() {
     
     // Points for referrals (if available)
     const referrals = profile?.referrals?.length || 0;
-    points += referrals * 100; // 100 points per referral
+    points += referrals * 50; // 50 points per referral
     
     // Points for premium services (if available)
     const premiumServices = profile?.premiumServices?.length || 0;
@@ -156,6 +157,24 @@ export default function EmployerRewardsPage() {
   const determineEmployerTier = (profile: any, points: number) => {
     const teamSize = profile?.teamSize || "0-10";
     const teamSizeNum = parseInt(teamSize.split('-')[0]) || 0;
+    const companyName = profile?.companyName || "";
+    
+    // Check if company is in TOP_200_COMPANIES
+    const isTopCompany = TOP_200_COMPANIES.some(
+      (company) => company.toLowerCase() === companyName.toLowerCase()
+    );
+    
+    // If employer gets 500+ points, they get Platinum tier
+    if (points >= 500) return "Platinum";
+    
+    // If company size is 0-100, it should be Blue tier
+    if (teamSizeNum <= 100) return "Blue";
+    
+    // If company size is 101-500, it should be Silver tier
+    if (teamSizeNum >= 101 && teamSizeNum <= 500) return "Silver";
+    
+    // If company size is 501-1000 or TOP_200_COMPANIES, it should be Gold tier
+    if ((teamSizeNum >= 501 && teamSizeNum <= 1000) || isTopCompany) return "Gold";
     
     if (points >= 350) return "Platinum";
     else if (points >= 250 || teamSizeNum >= 500) return "Gold";

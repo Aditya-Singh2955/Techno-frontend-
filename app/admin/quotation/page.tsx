@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Clock, Building2, CheckCircle, FileText, Mail, ChevronLeft, ChevronRight, Phone, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 // Interface for quote request data
 interface QuoteRequest {
@@ -40,6 +41,8 @@ export default function QuotationPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(4) // Show 4 quotations per page
   const [totalQuotations, setTotalQuotations] = useState(0)
+  const [contactOpen, setContactOpen] = useState(false)
+  const [selectedQuotation, setSelectedQuotation] = useState<QuoteRequest | null>(null)
 
   // Get auth headers function (same as admin-api.ts)
   const getAuthHeaders = (): Record<string, string> => {
@@ -142,8 +145,51 @@ export default function QuotationPage() {
     fetchQuotations()
   }, [currentPage])
 
-  const handleConfirmPayment = (quotationId: string) => {
-    updateQuoteStatus(quotationId, 'quoted')
+  const handleConfirmPayment = async (quotationId: string) => {
+    try {
+      const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/quotes/${quotationId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ status: 'accepted' })
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Error",
+            description: "Please log in to confirm payment.",
+            variant: "destructive",
+          })
+          router.push('/login')
+          return
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        toast({
+          title: "Payment Confirmed",
+          description: "HR service has been activated for the employer and removed from quotations.",
+        })
+        // Refresh the list to remove this quotation
+        fetchQuotations()
+      } else {
+        throw new Error(data.message || 'Failed to confirm payment')
+      }
+    } catch (error) {
+      console.error('Error confirming payment:', error)
+      toast({
+        title: "Error",
+        description: "Failed to confirm payment. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleContactEmployer = (quotation: QuoteRequest) => {
+    setSelectedQuotation(quotation)
+    setContactOpen(true)
   }
 
   const getStatusColor = (status: string) => {
@@ -226,6 +272,7 @@ export default function QuotationPage() {
                   <Button 
                     variant="outline" 
                     className="flex-1 sm:flex-none"
+                    onClick={() => handleContactEmployer(quotation)}
                   >
                     <Mail className="w-4 h-4 mr-2" />
                     Contact Employer
@@ -315,6 +362,60 @@ export default function QuotationPage() {
           </div>
         </div>
       )}
+
+      {/* Contact Employer Dialog */}
+      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Employer Details</DialogTitle>
+            <DialogDescription>Use this information to contact the employer.</DialogDescription>
+          </DialogHeader>
+          {selectedQuotation && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <div className="text-sm text-gray-600">Company</div>
+                <div className="font-medium text-gray-900">{selectedQuotation.companyName}</div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-600">Contact Person</div>
+                  <div className="font-medium text-gray-900">{selectedQuotation.contactPerson?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-600">Phone</div>
+                  <div className="font-medium text-gray-900">{selectedQuotation.contactPerson?.phone || 'N/A'}</div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-sm text-gray-600">Email</div>
+                  <div className="font-medium text-gray-900 break-all">{selectedQuotation.contactPerson?.email || 'N/A'}</div>
+                </div>
+              </div>
+              <div className="border-t pt-3 flex gap-2">
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => {
+                    if (selectedQuotation?.contactPerson?.email) {
+                      window.location.href = `mailto:${selectedQuotation.contactPerson.email}`
+                    }
+                  }}
+                >
+                  Send Email
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedQuotation?.contactPerson?.phone) {
+                      window.location.href = `tel:${selectedQuotation.contactPerson.phone}`
+                    }
+                  }}
+                >
+                  Call
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

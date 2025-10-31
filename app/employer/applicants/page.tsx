@@ -222,7 +222,7 @@ export default function AllApplicantsPage() {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}/status`, {
+      await axios.patch(`https://techno-backend-a0s0.onrender.com/applications/${applicationId}/status`, {
         status: newStatus
       }, {
         headers: {
@@ -254,7 +254,7 @@ export default function AllApplicantsPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const interviewDateTime = `${interviewDetails.date}T${interviewDetails.time}`;
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${selectedApplicant._id}/status`, {
+      await axios.patch(`https://techno-backend-a0s0.onrender.com/applications/${selectedApplicant._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
         interviewDate: interviewDateTime,

@@ -1,6 +1,8 @@
 "use client"
 import React from "react";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 const mockServices = [
   { name: "Payroll Management", status: "In Progress" },
@@ -8,6 +10,7 @@ const mockServices = [
 ];
 
 export default function InProgressPage() {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-green-50 flex items-center justify-center py-12">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
@@ -33,6 +36,14 @@ export default function InProgressPage() {
         </div>
         <div className="text-sm text-gray-500 text-center mt-4">
           Status for all selected services: <span className="font-semibold text-yellow-600">In Progress</span>
+        </div>
+        <div className="flex justify-center mt-6">
+          <Button
+            className="gradient-bg text-white"
+            onClick={() => router.push("/employer/dashboard")}
+          >
+            Back to Dashboard
+          </Button>
         </div>
       </div>
     </div>

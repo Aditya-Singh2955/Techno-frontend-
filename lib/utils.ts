@@ -17,5 +17,4 @@ export const TOP_200_COMPANIES = [
   "Mashreq Bank",
   "Al-Futtaim Group",
   "Jumeirah Group",
-  // ... up to 200
 ];

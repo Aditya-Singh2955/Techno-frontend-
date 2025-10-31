@@ -87,6 +87,11 @@ interface ProfileData {
     twitter: string
   }
   deductedPoints: number
+  rewards?: {
+    applyForJobs?: number
+    rmService?: number
+    totalPoints?: number
+  }
 }
 
 export default function JobSeekerProfilePage() {
@@ -462,9 +467,12 @@ export default function JobSeekerProfilePage() {
       setProfileCompletion(percentage)
 
       // Calculate points based on completion (same logic as dashboard and cart)
-      const calculatedPoints = 50 + percentage * 2 // Base 50 + 2 points per percentage
+      const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+      const applicationPoints = profileData?.rewards?.applyForJobs || 0; // Points from job applications
+      const rmServicePoints = profileData?.rewards?.rmService || 0; // Points from RM service purchase
       const deductedPoints = profileData.deductedPoints || 0
-      const availablePoints = Math.max(0, calculatedPoints - deductedPoints)
+      const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+      const availablePoints = Math.max(0, totalPoints - deductedPoints)
       setPoints(availablePoints)
 
       // Determine tier
@@ -478,10 +486,10 @@ export default function JobSeekerProfilePage() {
       const isEmirati = profileData.personalInfo.nationality?.toLowerCase().includes("emirati");
       const hasEmploymentVisa = profileData.personalInfo.employmentVisa === "yes";
       const hasEmiratesId = !!profileData.personalInfo.emiratesId;
-      if (points >= 250) setTier("Platinum");
+      if (points >= 500) setTier("Platinum");
       else if (isEmirati || yearsExp >= 10) setTier("Gold");
       else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) setTier("Silver");
-      else if (yearsExp <= 4 && !hasEmploymentVisa) setTier("Blue");
+      else if (yearsExp <= 4 || hasEmploymentVisa) setTier("Blue");
       else setTier("Silver");
     }
 

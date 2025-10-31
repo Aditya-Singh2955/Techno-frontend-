@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, Download, Check, X, Clock, DollarSign, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { toast } from "sonner"
@@ -27,12 +27,16 @@ interface ServiceData {
 
 export default function AdminServicesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [services, setServices] = useState<ServiceData[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'all' | 'jobseekers' | 'employers'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(6) // Show 6 services per page
   const [totalServices, setTotalServices] = useState(0)
+  const [allTotalCount, setAllTotalCount] = useState<number | null>(null)
+  const [jobseekerTotalCount, setJobseekerTotalCount] = useState<number | null>(null)
+  const [employerTotalCount, setEmployerTotalCount] = useState<number | null>(null)
 
   // Get auth headers function (same as admin-api.ts)
   const getAuthHeaders = (): Record<string, string> => {
@@ -43,12 +47,20 @@ export default function AdminServicesPage() {
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
+  // Map UI tab to API buyerType
+  const mapTabToBuyerType = (tab: 'all' | 'jobseekers' | 'employers'): 'all' | 'jobseeker' | 'employer' => {
+    if (tab === 'jobseekers') return 'jobseeker'
+    if (tab === 'employers') return 'employer'
+    return 'all'
+  }
+
   // Fetch services from API
   const fetchServices = async () => {
     try {
       setLoading(true);
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
-      const response = await fetch(`${API_BASE_URL}/admin/services?page=${currentPage}&limit=${pageSize}&buyerType=${activeTab === 'all' ? 'all' : activeTab}`, {
+      const buyerType = mapTabToBuyerType(activeTab)
+      const response = await fetch(`${API_BASE_URL}/admin/services?page=${currentPage}&limit=${pageSize}&buyerType=${buyerType}`, {
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
@@ -72,6 +84,27 @@ export default function AdminServicesPage() {
       } else {
         throw new Error(data.message || 'Failed to fetch services');
       }
+
+      // Also fetch global totals for All, Jobseeker, Employer (persistent header stats)
+      try {
+        const [allResp, jsResp, empResp] = await Promise.all([
+          fetch(`${API_BASE_URL}/admin/services?page=1&limit=1&buyerType=all`, { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }),
+          fetch(`${API_BASE_URL}/admin/services?page=1&limit=1&buyerType=jobseeker`, { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }),
+          fetch(`${API_BASE_URL}/admin/services?page=1&limit=1&buyerType=employer`, { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } })
+        ])
+        if (allResp.ok) {
+          const allData = await allResp.json();
+          if (allData?.success && allData?.pagination?.totalCount !== undefined) setAllTotalCount(allData.pagination.totalCount)
+        }
+        if (jsResp.ok) {
+          const jsData = await jsResp.json();
+          if (jsData?.success && jsData?.pagination?.totalCount !== undefined) setJobseekerTotalCount(jsData.pagination.totalCount)
+        }
+        if (empResp.ok) {
+          const empData = await empResp.json();
+          if (empData?.success && empData?.pagination?.totalCount !== undefined) setEmployerTotalCount(empData.pagination.totalCount)
+        }
+      } catch {}
     } catch (error) {
       console.error('Error fetching services:', error);
       toast.error('Failed to fetch services. Please try again.');
@@ -121,6 +154,23 @@ export default function AdminServicesPage() {
   useEffect(() => {
     fetchServices();
   }, [currentPage, activeTab]);
+
+  // Initialize tab from query param (?type=All|Employer|Jobseeker)
+  useEffect(() => {
+    const typeParam = searchParams?.get('type') || ''
+    const normalized = typeParam.toLowerCase()
+    if (normalized === 'employer' || normalized === 'employers') {
+      setActiveTab('employers')
+      setCurrentPage(1)
+    } else if (normalized === 'jobseeker' || normalized === 'jobseekers') {
+      setActiveTab('jobseekers')
+      setCurrentPage(1)
+    } else if (normalized === 'all') {
+      setActiveTab('all')
+      setCurrentPage(1)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Refresh services
   const refreshServices = () => {
@@ -450,7 +500,7 @@ export default function AdminServicesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Services</p>
-              <p className="text-2xl font-bold">{totalServices}</p>
+              <p className="text-2xl font-bold">{(allTotalCount ?? totalServices)}</p>
             </div>
             <div className="p-2 bg-blue-100 rounded-lg">
               <Download className="w-5 h-5 text-blue-600" />
@@ -461,7 +511,7 @@ export default function AdminServicesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Jobseeker Services</p>
-              <p className="text-2xl font-bold">{jobseekerServices.length}</p>
+              <p className="text-2xl font-bold">{(jobseekerTotalCount ?? jobseekerServices.length)}</p>
             </div>
             <div className="p-2 bg-green-100 rounded-lg">
               <Check className="w-5 h-5 text-green-600" />
@@ -472,7 +522,7 @@ export default function AdminServicesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Employer Services</p>
-              <p className="text-2xl font-bold">{employerServices.length}</p>
+              <p className="text-2xl font-bold">{(employerTotalCount ?? employerServices.length)}</p>
             </div>
             <div className="p-2 bg-purple-100 rounded-lg">
               <Eye className="w-5 h-5 text-purple-600" />
@@ -489,21 +539,21 @@ export default function AdminServicesPage() {
             onClick={() => handleTabChange('all')}
             className="px-4 w-full sm:w-auto text-sm font-medium"
           >
-            All Services ({totalServices})
+            All Services ({allTotalCount ?? totalServices})
           </Button>
           <Button
             variant={activeTab === 'jobseekers' ? 'default' : 'ghost'}
             onClick={() => handleTabChange('jobseekers')}
             className="px-4 w-full sm:w-auto text-sm font-medium"
           >
-            Jobseekers ({jobseekerServices.length})
+            Jobseekers ({jobseekerTotalCount ?? jobseekerServices.length})
           </Button>
           <Button
             variant={activeTab === 'employers' ? 'default' : 'ghost'}
             onClick={() => handleTabChange('employers')}
             className="px-4 w-full sm:w-auto text-sm font-medium"
           >
-            Employers ({employerServices.length})
+            Employers ({employerTotalCount ?? employerServices.length})
           </Button>
         </div>
         

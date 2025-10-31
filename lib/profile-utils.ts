@@ -69,9 +69,12 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionResul
     }
     
     
-    const calculatedPoints = 50 + percentage * 2;
+    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+    const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
+    const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
     const deductedPoints = profile?.deductedPoints || 0;
-    const availablePoints = Math.max(0, calculatedPoints - deductedPoints);
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const availablePoints = Math.max(0, totalPoints - deductedPoints);
     
     return {
       percentage,
@@ -143,9 +146,12 @@ function calculateFieldsCompletion(profile: any): ProfileCompletionResult {
   const percentage = Math.round((completed / totalFields) * 100);
   const canApply = percentage >= 80 && hasResume;
 
-  const calculatedPoints = 50 + percentage * 2;
-  const deductedPoints = profile?.deductedPoints || 0;
-  const availablePoints = Math.max(0, calculatedPoints - deductedPoints);
+    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+    const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
+    const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
+    const deductedPoints = profile?.deductedPoints || 0;
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const availablePoints = Math.max(0, totalPoints - deductedPoints);
   
   return {
     percentage,
