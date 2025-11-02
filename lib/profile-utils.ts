@@ -79,8 +79,8 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionResul
     return {
       percentage,
       points: availablePoints,
-      completedFields: Math.round(percentage * 25 / 100),
-      totalFields: 25,
+      completedFields: Math.round(percentage * 24 / 100),
+      totalFields: 24,
       missingFields,
       hasResume,
       canApply: percentage >= 80 && hasResume
@@ -93,10 +93,10 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionResul
 
 function calculateFieldsCompletion(profile: any): ProfileCompletionResult {
   let completed = 0;
-  const totalFields = 25;
+  const totalFields = 24; // employmentVisa removed
   const missingFields: string[] = [];
 
-  // Personal Info (10 fields)
+  // Personal Info (9 fields - employmentVisa removed)
   if (profile?.fullName || profile?.name) completed++; else missingFields.push("Full Name");
   if (profile?.email) completed++; else missingFields.push("Email");
   if (profile?.phoneNumber) completed++; else missingFields.push("Phone Number");
@@ -106,7 +106,6 @@ function calculateFieldsCompletion(profile: any): ProfileCompletionResult {
   if (profile?.professionalSummary) completed++; else missingFields.push("Professional Summary");
   if (profile?.emirateId) completed++; else missingFields.push("Emirates ID");
   if (profile?.passportNumber) completed++; else missingFields.push("Passport Number");
-  if (profile?.employmentVisa) completed++; else missingFields.push("Employment Visa");
 
   // Experience (4 fields)
   const exp = profile?.professionalExperience?.[0];

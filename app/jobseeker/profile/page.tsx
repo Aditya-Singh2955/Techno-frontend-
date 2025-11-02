@@ -426,9 +426,9 @@ export default function JobSeekerProfilePage() {
   useEffect(() => {
     const calculateCompletion = () => {
       let completed = 0
-      const totalFields = 25 // Updated total fields count
+      const totalFields = 24 // Updated total fields count (employmentVisa removed)
 
-      // Personal Info (10 fields)
+      // Personal Info (9 fields)
       if (profileData.personalInfo.fullName) completed++
       if (profileData.personalInfo.email) completed++
       if (profileData.personalInfo.phone) completed++
@@ -438,7 +438,6 @@ export default function JobSeekerProfilePage() {
       if (profileData.personalInfo.summary) completed++
       if (profileData.personalInfo.emiratesId) completed++
       if (profileData.personalInfo.passportNumber) completed++
-      if (profileData.personalInfo.employmentVisa) completed++
 
       // Experience (4 fields)
       if (profileData.experience.currentRole) completed++
@@ -484,12 +483,11 @@ export default function JobSeekerProfilePage() {
       else if (expStr === "7-10") yearsExp = 10;
       else if (expStr === "10+") yearsExp = 11;
       const isEmirati = profileData.personalInfo.nationality?.toLowerCase().includes("emirati");
-      const hasEmploymentVisa = profileData.personalInfo.employmentVisa === "yes";
       const hasEmiratesId = !!profileData.personalInfo.emiratesId;
       if (points >= 500) setTier("Platinum");
       else if (isEmirati || yearsExp >= 10) setTier("Gold");
-      else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) setTier("Silver");
-      else if (yearsExp <= 4 || hasEmploymentVisa) setTier("Blue");
+      else if (yearsExp >= 5 && hasEmiratesId) setTier("Silver");
+      else if (yearsExp <= 4) setTier("Blue");
       else setTier("Silver");
     }
 
@@ -796,8 +794,39 @@ export default function JobSeekerProfilePage() {
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       id="phone"
+                      type="tel"
                       value={profileData.personalInfo.phone}
-                      onChange={(e) => handleInputChange("personalInfo", "phone", e.target.value)}
+                      onChange={(e) => {
+                        // Allow only + and numbers
+                        const value = e.target.value.replace(/[^+0-9]/g, '')
+                        handleInputChange("personalInfo", "phone", value)
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevent typing if it's not a number, +, or allowed keys (backspace, delete, arrow keys, etc.)
+                        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End']
+                        const isNumber = e.key >= '0' && e.key <= '9'
+                        const isPlus = e.key === '+'
+                        const isAllowedKey = allowedKeys.includes(e.key)
+                        const isCtrlCmd = e.ctrlKey || e.metaKey
+                        
+                        // Allow Ctrl/Cmd + A, C, V, X for select all, copy, paste, cut
+                        if (isCtrlCmd && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                          return
+                        }
+                        
+                        // Block if it's not a number, plus, or allowed key
+                        if (!isNumber && !isPlus && !isAllowedKey) {
+                          e.preventDefault()
+                        }
+                      }}
+                      onPaste={(e) => {
+                        // Clean pasted content to only allow + and numbers
+                        e.preventDefault()
+                        const pastedText = e.clipboardData.getData('text')
+                        const cleanedText = pastedText.replace(/[^+0-9]/g, '')
+                        handleInputChange("personalInfo", "phone", cleanedText)
+                      }}
+                      placeholder="+971501234567"
                       className="pl-10"
                     />
                   </div>
@@ -1358,7 +1387,24 @@ export default function JobSeekerProfilePage() {
                       <div className="flex items-center space-x-3">
                         <FileText className="w-8 h-8 text-blue-600" />
                         <div>
-                          <p className="font-medium text-gray-900">Current Resume</p>
+                          <p className="font-medium text-gray-900">
+                            {(() => {
+                              // Extract filename from URL
+                              try {
+                                const urlParts = profileData.resumeDocument.split('/');
+                                const lastPart = urlParts[urlParts.length - 1];
+                                if (lastPart && lastPart.includes('.')) {
+                                  const cleanFilename = lastPart.split('?')[0];
+                                  if (cleanFilename.length > 0) {
+                                    return cleanFilename;
+                                  }
+                                }
+                              } catch (error) {
+                                console.log('Could not extract filename from URL');
+                              }
+                              return 'Primary Resume';
+                            })()}
+                          </p>
                           <p className="text-sm text-gray-500">Resume uploaded and saved</p>
                         </div>
                       </div>
@@ -1378,13 +1424,68 @@ export default function JobSeekerProfilePage() {
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = profileData.resumeDocument;
-                            link.download = 'resume';
+                            // Extract filename from URL for download
+                            try {
+                              const urlParts = profileData.resumeDocument.split('/');
+                              const lastPart = urlParts[urlParts.length - 1];
+                              if (lastPart && lastPart.includes('.')) {
+                                const cleanFilename = lastPart.split('?')[0];
+                                link.download = cleanFilename || 'resume';
+                              } else {
+                                link.download = 'resume';
+                              }
+                            } catch {
+                              link.download = 'resume';
+                            }
                             link.click();
                           }}
                           className="h-8 px-3"
                         >
                           <Download className="w-3 h-3 mr-1" />
                           Download
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            setProfileData(prev => ({ ...prev, resumeDocument: "" }));
+                            
+                            // Auto-save to database
+                            try {
+                              const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+                              if (token) {
+                                const response = await fetch(`${API_BASE_URL}/api/v1/profile/update`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    resumeDocument: ""
+                                  }),
+                                });
+                                
+                                if (response.ok) {
+                                  toast({
+                                    title: "Resume Removed",
+                                    description: "Primary resume has been removed from your profile.",
+                                  });
+                                } else {
+                                  throw new Error('Failed to update profile');
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Error updating profile after resume deletion:', error);
+                              toast({
+                                title: "Resume Removed Locally",
+                                description: "Resume removed locally. Please click 'Save Profile' to persist changes.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
@@ -1714,16 +1815,14 @@ export default function JobSeekerProfilePage() {
 
           {/* Follow Us Section */}
           <FollowUs 
-            onPointsEarned={(platform, earnedPoints) => {
-              // Recalculate points with the new earned points
-              const newCalculatedPoints = 50 + profileCompletion * 2 + earnedPoints
+            onPointsEarned={(platform, earnedPoints, totalPoints) => {
+              // Update points with the new total from backend
               const deductedPoints = profileData.deductedPoints || 0
-              const availablePoints = Math.max(0, newCalculatedPoints - deductedPoints)
+              const availablePoints = Math.max(0, totalPoints - deductedPoints)
               setPoints(availablePoints)
-              toast({
-                title: "Profile Updated!",
-                description: `Earned ${earnedPoints} points for following us on ${platform}! Total points: ${availablePoints}`,
-              })
+              
+              // Refresh profile data to get updated points
+              fetchProfileData()
             }}
           />
 

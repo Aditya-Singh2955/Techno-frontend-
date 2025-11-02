@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { AdminDataTable } from "@/components/admin-data-table"
 import { Jobseeker, Employer } from "@/lib/admin-types"
@@ -28,7 +28,7 @@ export default function AdminUsersPage() {
   const [employers, setEmployers] = useState<Employer[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [pagination, setPagination] = useState({
+  const [jobseekerPagination, setJobseekerPagination] = useState({
     currentPage: 1,
     totalPages: 0,
     totalCount: 0,
@@ -36,6 +36,15 @@ export default function AdminUsersPage() {
     hasPrevPage: false,
     limit: 10
   })
+  const [employerPagination, setEmployerPagination] = useState({
+    currentPage: 1,
+    totalPages: 0,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10
+  })
+  const hasInitialFetch = useRef(false)
 
   // Fetch users data based on active tab
   const fetchUsers = async (userType: 'jobseeker' | 'employer', page: number = 1) => {
@@ -52,11 +61,11 @@ export default function AdminUsersPage() {
 
       if (userType === 'jobseeker') {
         setJobseekers(response.users as Jobseeker[])
+        setJobseekerPagination(response.pagination)
       } else {
         setEmployers(response.users as Employer[])
+        setEmployerPagination(response.pagination)
       }
-      
-      setPagination(response.pagination)
     } catch (err) {
       console.error(`Error fetching ${userType} data:`, err)
       setError(`Failed to load ${userType} data`)
@@ -65,20 +74,67 @@ export default function AdminUsersPage() {
     }
   }
 
-  // Load data when component mounts or tab changes
+  // Pre-fetch both counts on initial mount so counts are available for both tabs
   useEffect(() => {
+    const fetchInitialCounts = async () => {
+      if (hasInitialFetch.current) return
+      hasInitialFetch.current = true
+
+      try {
+        setIsLoading(true)
+        // Fetch both jobseekers and employers on initial load
+        const [jobseekerResponse, employerResponse] = await Promise.all([
+          getUsersByType('jobseeker', {
+            page: 1,
+            limit: 10,
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
+          }),
+          getUsersByType('employer', {
+            page: 1,
+            limit: 10,
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
+          })
+        ])
+
+        setJobseekers(jobseekerResponse.users as Jobseeker[])
+        setJobseekerPagination(jobseekerResponse.pagination)
+        setEmployers(employerResponse.users as Employer[])
+        setEmployerPagination(employerResponse.pagination)
+      } catch (err) {
+        console.error('Error fetching initial counts:', err)
+        setError('Failed to load user data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // Only fetch on initial mount
+    fetchInitialCounts()
+  }, []) // Empty dependency array - only run on mount
+
+  // Load data when tab changes (but skip on initial mount since we fetch both above)
+  useEffect(() => {
+    if (!hasInitialFetch.current) return // Skip if initial fetch hasn't completed yet
+    
     const userType = activeTab === 'jobseekers' ? 'jobseeker' : 'employer'
     fetchUsers(userType)
   }, [activeTab])
 
   const handleRefresh = () => {
     const userType = activeTab === 'jobseekers' ? 'jobseeker' : 'employer'
-    fetchUsers(userType, pagination.currentPage)
+    const currentPagination = activeTab === 'jobseekers' ? jobseekerPagination : employerPagination
+    fetchUsers(userType, currentPagination.currentPage)
   }
 
   const handleTabChange = (tab: 'jobseekers' | 'employers') => {
     setActiveTab(tab)
-    setPagination(prev => ({ ...prev, currentPage: 1 })) // Reset to first page
+    if (tab === 'jobseekers') {
+      setJobseekerPagination(prev => ({ ...prev, currentPage: 1 })) // Reset to first page
+    } else {
+      setEmployerPagination(prev => ({ ...prev, currentPage: 1 })) // Reset to first page
+    }
   }
 
   const jobseekerColumns = [
@@ -134,7 +190,8 @@ export default function AdminUsersPage() {
       
       if (success) {
         // Refresh the data to get the updated status from the server
-        await fetchUsers(userType, pagination.currentPage);
+        const currentPagination = userType === 'jobseeker' ? jobseekerPagination : employerPagination
+        await fetchUsers(userType, currentPagination.currentPage);
       }
     } catch (error) {
       console.error('Failed to block user:', error);
@@ -149,7 +206,8 @@ export default function AdminUsersPage() {
       
       if (success) {
         // Refresh the data to get the updated status from the server
-        await fetchUsers(userType, pagination.currentPage);
+        const currentPagination = userType === 'jobseeker' ? jobseekerPagination : employerPagination
+        await fetchUsers(userType, currentPagination.currentPage);
       }
     } catch (error) {
       console.error('Failed to unblock user:', error);
@@ -360,7 +418,7 @@ export default function AdminUsersPage() {
           className="px-4 w-full sm:w-auto"
           disabled={isLoading}
         >
-          Jobseekers ({pagination.totalCount > 0 && activeTab === 'jobseekers' ? pagination.totalCount : jobseekers.length})
+          Jobseekers ({jobseekerPagination.totalCount > 0 ? jobseekerPagination.totalCount : jobseekers.length})
         </Button>
         <Button
           variant={activeTab === 'employers' ? 'default' : 'ghost'}
@@ -368,7 +426,7 @@ export default function AdminUsersPage() {
           className="px-4 w-full sm:w-auto"
           disabled={isLoading}
         >
-          Employers ({pagination.totalCount > 0 && activeTab === 'employers' ? pagination.totalCount : employers.length})
+          Employers ({employerPagination.totalCount > 0 ? employerPagination.totalCount : employers.length})
         </Button>
       </div>
 
@@ -394,42 +452,45 @@ export default function AdminUsersPage() {
           )}
 
           {/* Pagination Controls */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to{' '}
-                {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of{' '}
-                {pagination.totalCount} results
+          {(() => {
+            const pagination = activeTab === 'jobseekers' ? jobseekerPagination : employerPagination
+            return pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to{' '}
+                  {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of{' '}
+                  {pagination.totalCount} results
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const userType = activeTab === 'jobseekers' ? 'jobseeker' : 'employer'
+                      fetchUsers(userType, pagination.currentPage - 1)
+                    }}
+                    disabled={!pagination.hasPrevPage || isLoading}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-600">
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const userType = activeTab === 'jobseekers' ? 'jobseeker' : 'employer'
+                      fetchUsers(userType, pagination.currentPage + 1)
+                    }}
+                    disabled={!pagination.hasNextPage || isLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const userType = activeTab === 'jobseekers' ? 'jobseeker' : 'employer'
-                    fetchUsers(userType, pagination.currentPage - 1)
-                  }}
-                  disabled={!pagination.hasPrevPage || isLoading}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-gray-600">
-                  Page {pagination.currentPage} of {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const userType = activeTab === 'jobseekers' ? 'jobseeker' : 'employer'
-                    fetchUsers(userType, pagination.currentPage + 1)
-                  }}
-                  disabled={!pagination.hasNextPage || isLoading}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
+            )
+          })()}
         </>
       )}
     </div>

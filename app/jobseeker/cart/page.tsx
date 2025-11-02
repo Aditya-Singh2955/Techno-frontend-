@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ShoppingCart, Trash2, BadgePercent } from "lucide-react"
 
 export default function CartPage() {
-  const [rewardPoints, setRewardPoints] = useState(0)
+  const [rewardPoints, setRewardPoints] = useState<number | "">("")
   const [userPoints, setUserPoints] = useState(0)
   const [coupon, setCoupon] = useState("")
   const [cart, setCart] = useState([{ name: "Virtual RM Service", desc: "Dedicated Relationship Manager for your job search journey.", price: 4999 }])
@@ -21,9 +21,9 @@ export default function CartPage() {
   // Calculate profile points (same logic as dashboard)
   const calculateProfilePoints = (profile: any) => {
     let completed = 0;
-    const totalFields = 25; // Same as dashboard
+    const totalFields = 24; // Same as dashboard (employmentVisa removed)
 
-    // Personal Info (10 fields)
+    // Personal Info (9 fields - employmentVisa removed)
     if (profile?.fullName) completed++;
     if (profile?.email) completed++;
     if (profile?.phoneNumber) completed++;
@@ -33,7 +33,6 @@ export default function CartPage() {
     if (profile?.professionalSummary) completed++;
     if (profile?.emirateId) completed++;
     if (profile?.passportNumber) completed++;
-    if (profile?.employmentVisa) completed++;
 
     // Experience (4 fields)
     const exp = profile?.professionalExperience?.[0];
@@ -120,7 +119,7 @@ export default function CartPage() {
 
   const AED_PRICE = 2500;
   const subtotal = cart.length > 0 ? AED_PRICE : 0;
-  const pointsDiscount = rewardPoints * 1; // 1 point = 1 AED
+  const pointsDiscount = (typeof rewardPoints === "number" ? rewardPoints : 0) * 1; // 1 point = 1 AED
   const total = Math.max(subtotal - pointsDiscount, 0);
 
   const handleRemove = () => {
@@ -129,8 +128,22 @@ export default function CartPage() {
     toast({ title: "Removed from cart", description: "Virtual RM Service removed." })
   }
 
-  const handlePointsChange = (value: number) => {
-    if (value > userPoints) {
+  const handlePointsChange = (value: string | number) => {
+    // Handle empty input
+    if (value === "" || value === null || value === undefined) {
+      setRewardPoints("")
+      return
+    }
+
+    const numValue = Number(value)
+    
+    // Check if it's a valid number
+    if (isNaN(numValue)) {
+      setRewardPoints("")
+      return
+    }
+
+    if (numValue > userPoints) {
       toast({
         title: "Insufficient Points",
         description: `You only have ${userPoints} points available.`,
@@ -138,15 +151,17 @@ export default function CartPage() {
       })
       return
     }
-    if (value < 0) {
-      setRewardPoints(0)
+    if (numValue < 0) {
+      setRewardPoints("")
       return
     }
-    setRewardPoints(value)
+    setRewardPoints(numValue)
   }
 
   const handleApplyPoints = () => {
-    if (rewardPoints > userPoints) {
+    const pointsToApply = typeof rewardPoints === "number" ? rewardPoints : 0
+    
+    if (pointsToApply > userPoints) {
       toast({
         title: "Insufficient Points",
         description: `You only have ${userPoints} points available.`,
@@ -154,10 +169,10 @@ export default function CartPage() {
       })
       return
     }
-    if (rewardPoints > 0) {
+    if (pointsToApply > 0) {
       toast({ 
         title: "Points Applied!", 
-        description: `${rewardPoints} points applied for AED ${rewardPoints} discount.` 
+        description: `${pointsToApply} points applied for AED ${pointsToApply} discount.` 
       })
     } else {
       toast({
@@ -184,7 +199,7 @@ export default function CartPage() {
       const orderData = {
         service: "Virtual RM Service",
         price: AED_PRICE,
-        pointsUsed: rewardPoints,
+        pointsUsed: typeof rewardPoints === "number" ? rewardPoints : 0,
         couponCode: coupon,
         totalAmount: total
       }
@@ -207,7 +222,7 @@ export default function CartPage() {
       
       // Update local points state
       setUserPoints(data.data.remainingPoints)
-      setRewardPoints(0) // Reset points input
+      setRewardPoints("") // Reset points input to empty
       
       toast({
         title: "Order Placed Successfully!",
@@ -301,19 +316,38 @@ export default function CartPage() {
                 Redeem Findr Points / Coupon
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col md:flex-row md:items-center gap-4 pt-0">
+            <CardContent className="flex flex-col md:flex-row gap-4 pt-0">
               <div className="flex flex-col gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  max={userPoints}
-                  value={rewardPoints}
-                  onChange={e => handlePointsChange(Number(e.target.value))}
-                  placeholder="Reward Points"
-                  className="max-w-[120px]"
-                  disabled={removed || isLoading}
-                  style={{cursor:'pointer'}}
-                />
+                <div className="flex flex-col md:flex-row md:items-start gap-4">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={userPoints}
+                    value={rewardPoints === "" ? "" : rewardPoints}
+                    onChange={e => handlePointsChange(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="Reward Points"
+                    className="max-w-[120px]"
+                    disabled={removed || isLoading}
+                    style={{cursor:'pointer'}}
+                  />
+                  <Input
+                    type="text"
+                    value={coupon}
+                    onChange={e => setCoupon(e.target.value)}
+                    placeholder="Coupon Code"
+                    className="max-w-[180px]"
+                    disabled={removed}
+                    style={{cursor:'pointer'}}
+                  />
+                  <Button 
+                    className="gradient-bg text-white rounded-full self-start" 
+                    disabled={removed || isLoading} 
+                    onClick={handleApplyPoints} 
+                    style={{cursor:'pointer'}}
+                  >
+                    Apply
+                  </Button>
+                </div>
                 <div className="text-xs text-gray-500 flex items-center gap-2">
                   Available: {isLoading ? 'Loading...' : `${userPoints} points`}
                   <button 
@@ -325,23 +359,6 @@ export default function CartPage() {
                   </button>
                 </div>
               </div>
-              <Input
-                type="text"
-                value={coupon}
-                onChange={e => setCoupon(e.target.value)}
-                placeholder="Coupon Code"
-                className="max-w-[180px]"
-                disabled={removed}
-                style={{cursor:'pointer'}}
-              />
-              <Button 
-                className="gradient-bg text-white rounded-full" 
-                disabled={removed || isLoading} 
-                onClick={handleApplyPoints} 
-                style={{cursor:'pointer'}}
-              >
-                Apply
-              </Button>
             </CardContent>
             <CardDescription className="text-xs text-gray-500 pt-2 px-6 pb-4">
               Use earned points to get discounts on premium services. 1 point = 1 AED discount.

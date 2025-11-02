@@ -138,9 +138,9 @@ export default function JobSeekerDashboard() {
   // Calculate profile completion and points (same logic as profile page)
   const calculateProfileMetrics = (profile: any) => {
     let completed = 0;
-    const totalFields = 25; // Same as profile page
+    const totalFields = 24; // Same as profile page (employmentVisa removed)
 
-    // Personal Info (10 fields)
+    // Personal Info (9 fields)
     if (profile?.fullName) completed++;
     if (profile?.email) completed++;
     if (profile?.phoneNumber) completed++;
@@ -150,7 +150,6 @@ export default function JobSeekerDashboard() {
     if (profile?.professionalSummary) completed++;
     if (profile?.emirateId) completed++;
     if (profile?.passportNumber) completed++;
-    if (profile?.employmentVisa) completed++;
 
     // Experience (4 fields)
     const exp = profile?.professionalExperience?.[0];
@@ -308,14 +307,13 @@ export default function JobSeekerDashboard() {
                         const yearsExp = userProfile?.professionalExperience?.[0]?.yearsOfExperience || 0;
                         
                         const isEmirati = userProfile?.nationality?.toLowerCase()?.includes("emirati");
-                        const hasEmploymentVisa = userProfile?.employmentVisa === "yes";
                         const hasEmiratesId = !!userProfile?.emirateId;
                         
                         let tier;
                         if (points >= 500) tier = "Platinum";
                         else if (isEmirati || yearsExp >= 10) tier = "Gold";
-                        else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) tier = "Silver";
-                        else if (yearsExp <= 4 || hasEmploymentVisa) tier = "Blue";
+                        else if (yearsExp >= 5 && hasEmiratesId) tier = "Silver";
+                        else if (yearsExp <= 4) tier = "Blue";
                         else tier = "Silver";
                         
                         

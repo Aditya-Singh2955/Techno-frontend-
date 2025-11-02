@@ -78,9 +78,14 @@ export function FileUpload({
     setIsUploading(true);
 
     try {
+      // Determine file type to use appropriate upload endpoint
+      const fileType = UploadAPI.getFileType(file);
+      const isDocument = fileType === 'document';
+      
+      // Use raw upload for documents (resume and other documents), auto for images/videos
       const uploadedFile: UploadedFile = await UploadAPI.uploadFile(file, {
         folder: 'findr_uploads',
-        resourceType: 'auto'
+        resourceType: isDocument ? 'raw' : 'auto'
       });
       
       // Ensure original filename is preserved

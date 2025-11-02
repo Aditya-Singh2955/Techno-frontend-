@@ -9,7 +9,7 @@ import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import { 
   User, Mail, Phone, MapPin, Calendar, FileText, Star, 
-  Check, X, Clock, Video, Briefcase, DollarSign, ArrowLeft 
+  Check, X, Clock, Video, Briefcase, DollarSign, ArrowLeft, Search
 } from "lucide-react";
 import {
   Select,
@@ -78,18 +78,39 @@ const statusOptions = [
 const statusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "pending":
-      return "bg-gray-100 text-gray-800";
+      return "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md";
     case "shortlisted":
-      return "bg-blue-100 text-blue-800";
+      return "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md";
     case "interview_scheduled":
-      return "bg-green-100 text-green-800";
+      return "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md";
     case "hired":
-      return "bg-purple-100 text-purple-800";
+      return "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md";
     case "rejected":
-      return "bg-red-100 text-red-800";
+      return "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-md";
   }
+};
+
+const getCardGradient = (index: number, status?: string) => {
+  const gradients = [
+    "from-blue-50 via-emerald-50 to-blue-100",
+    "from-emerald-50 via-blue-50 to-emerald-100",
+    "from-purple-50 via-pink-50 to-purple-100",
+    "from-cyan-50 via-blue-50 to-cyan-100",
+    "from-indigo-50 via-purple-50 to-indigo-100",
+    "from-teal-50 via-emerald-50 to-teal-100",
+  ];
+  
+  if (status === 'hired') {
+    return "from-purple-50 via-pink-50 to-purple-100";
+  } else if (status === 'interview_scheduled') {
+    return "from-emerald-50 via-green-50 to-emerald-100";
+  } else if (status === 'shortlisted') {
+    return "from-blue-50 via-cyan-50 to-blue-100";
+  }
+  
+  return gradients[index % gradients.length];
 };
 
 const formatStatus = (status: string) => {
@@ -195,11 +216,11 @@ export default function JobApplicantsPage() {
       });
       
       fetchApplicants(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating status:', error);
       toast({
         title: "Error",
-        description: "Failed to update applicant status.",
+        description: error.response?.data?.message || "Failed to update applicant status.",
         variant: "destructive",
       });
     }
@@ -243,12 +264,12 @@ export default function JobApplicantsPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-blue-50 flex flex-col">
       <Navbar />
       <main className="flex-1 p-4 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-6 bg-gradient-to-r from-white via-emerald-50/50 to-blue-50 backdrop-blur-sm p-6 rounded-xl border-b border-emerald-200/50 shadow-sm">
             <Button
               variant="ghost"
               onClick={() => router.push('/employer/active-jobs')}
@@ -258,31 +279,35 @@ export default function JobApplicantsPage() {
               Back to Jobs
             </Button>
             <div>
-              <h1 className="text-3xl font-bold mb-1 tracking-tight">
+              <h1 className="text-3xl font-bold mb-1 tracking-tight gradient-text flex items-center gap-2">
+                <Briefcase className="w-8 h-8 text-emerald-600" />
                 Applicants for {jobDetails?.title || "Loading..."}
               </h1>
               <p className="text-gray-600 text-base">
                 {jobDetails?.companyName} • {jobDetails?.location}
               </p>
               <div className="mt-2">
-                <Badge variant="secondary">{applicants.length} Total Applicants</Badge>
+                <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md">{applicants.length} Total Applicants</Badge>
               </div>
             </div>
           </div>
 
           {/* Filters */}
-          <Card className="mb-6">
+          <Card className="mb-6 border-0 shadow-lg bg-gradient-to-r from-white to-emerald-50/30">
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100 flex-1"
-                />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full rounded-xl border-2 border-emerald-200 bg-white px-4 py-2 pl-10 text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition-all"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-emerald-600" />
+                </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
+                  <SelectTrigger className="w-full sm:w-48 border-2 border-blue-200 shadow-md focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -311,72 +336,81 @@ export default function JobApplicantsPage() {
                   <p>No applicants found.</p>
                 </div>
               )}
-              {filteredApplicants.map((applicant) => (
-                <Card key={applicant._id} className="transition-shadow duration-200 shadow-md border-0 bg-white rounded-xl hover:shadow-lg">
-                  <CardContent className="p-6">
-                    {/* Applicant Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mr-3">
+              {filteredApplicants.map((applicant, idx) => {
+                const cardGradient = getCardGradient(idx, applicant.status);
+                const applicantName = applicant.applicantDetails?.name || 'Unknown';
+                
+                return (
+                  <Card key={applicant._id} className={`transition-shadow duration-200 shadow-lg border-2 border-transparent bg-gradient-to-br ${cardGradient} rounded-2xl overflow-hidden relative`}>
+                    {/* Decorative corner accent */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-200/30 to-blue-200/30 rounded-bl-full"></div>
+                    
+                    <CardContent className="p-6 relative z-10">
+                      {/* Applicant Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3 flex-1">
                           {applicant.applicantDetails?.profilePicture ? (
-                            <img 
-                              src={applicant.applicantDetails.profilePicture} 
-                              alt={applicant.applicantDetails.name}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
+                            <div className="w-12 h-12 rounded-full ring-2 ring-white shadow-md overflow-hidden">
+                              <img 
+                                src={applicant.applicantDetails.profilePicture} 
+                                alt={applicantName}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            </div>
                           ) : (
-                            <User className="w-6 h-6 text-gray-600" />
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-md ring-2 ring-white">
+                              {applicantName.charAt(0).toUpperCase()}
+                            </div>
                           )}
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg text-gray-900">
+                              {applicantName}
+                            </h3>
+                            <Badge className={`text-xs px-3 py-1 rounded-full font-semibold mt-1 ${statusColor(applicant.status)}`}>
+                              {formatStatus(applicant.status)}
+                            </Badge>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-lg text-gray-900">
-                            {applicant.applicantDetails?.name || 'Unknown'}
-                          </h3>
-                          <Badge className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(applicant.status)}`}>
-                            {formatStatus(applicant.status)}
-                          </Badge>
-                        </div>
+                        {!applicant.viewedByEmployer && (
+                          <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md text-xs px-2 py-1">New</Badge>
+                        )}
                       </div>
-                      {!applicant.viewedByEmployer && (
-                        <Badge variant="secondary" className="text-xs">New</Badge>
-                      )}
-                    </div>
 
-                    {/* Applicant Details */}
-                    <div className="space-y-2 mb-4 text-sm">
-                      <div className="flex items-center text-gray-600">
-                        <Mail className="w-4 h-4 mr-2" />
-                        {applicant.applicantDetails?.email}
+                      {/* Applicant Details */}
+                      <div className="space-y-2 mb-4 pt-2 border-t border-white/50 text-sm">
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Mail className="w-4 h-4 text-blue-600" />
+                          <span className="truncate">{applicant.applicantDetails?.email}</span>
+                        </div>
+                        {applicant.applicantDetails?.phone && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Phone className="w-4 h-4 text-emerald-600" />
+                            <span>{applicant.applicantDetails.phone}</span>
+                          </div>
+                        )}
+                        {applicant.applicantDetails?.location && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <MapPin className="w-4 h-4 text-purple-600" />
+                            <span>{applicant.applicantDetails.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <Calendar className="w-4 h-4 text-orange-600" />
+                          <span>Applied: {new Date(applicant.appliedDate).toLocaleDateString()}</span>
+                        </div>
+                        {applicant.expectedSalary && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <DollarSign className="w-4 h-4 text-green-600" />
+                            <span>Expected: AED {applicant.expectedSalary.min} - {applicant.expectedSalary.max}</span>
+                          </div>
+                        )}
+                        {applicant.availability && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Clock className="w-4 h-4 text-cyan-600" />
+                            <span>{applicant.availability}</span>
+                          </div>
+                        )}
                       </div>
-                      {applicant.applicantDetails?.phone && (
-                        <div className="flex items-center text-gray-600">
-                          <Phone className="w-4 h-4 mr-2" />
-                          {applicant.applicantDetails.phone}
-                        </div>
-                      )}
-                      {applicant.applicantDetails?.location && (
-                        <div className="flex items-center text-gray-600">
-                          <MapPin className="w-4 h-4 mr-2" />
-                          {applicant.applicantDetails.location}
-                        </div>
-                      )}
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Applied: {new Date(applicant.appliedDate).toLocaleDateString()}
-                      </div>
-                      {applicant.expectedSalary && (
-                        <div className="flex items-center text-gray-600">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          Expected: AED {applicant.expectedSalary.min} - {applicant.expectedSalary.max}
-                        </div>
-                      )}
-                      {applicant.availability && (
-                        <div className="flex items-center text-gray-600">
-                          <Clock className="w-4 h-4 mr-2" />
-                          {applicant.availability}
-                        </div>
-                      )}
-                    </div>
 
 
                     {/* Comments Section */}
@@ -392,85 +426,85 @@ export default function JobApplicantsPage() {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="col-span-2"
-                        onClick={() => router.push(`/employer/applicants/profile/${applicant._id}`)}
-                      >
-                        <User className="w-4 h-4 mr-1" />
-                        View Profile
-                      </Button>
-                      
-                      {applicant.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                            onClick={() => updateApplicantStatus(applicant._id, 'shortlisted')}
-                          >
-                            <Check className="w-4 h-4 mr-1" />
-                            Shortlist
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateApplicantStatus(applicant._id, 'rejected')}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      {applicant.status === 'shortlisted' && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => {
-                              setSelectedApplicant(applicant);
-                              setInterviewDialogOpen(true);
-                            }}
-                          >
-                            <Video className="w-4 h-4 mr-1" />
-                            Schedule
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateApplicantStatus(applicant._id, 'rejected')}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      {applicant.status === 'interview_scheduled' && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
-                            onClick={() => updateApplicantStatus(applicant._id, 'hired')}
-                          >
-                            <Briefcase className="w-4 h-4 mr-1" />
-                            Hire
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateApplicantStatus(applicant._id, 'rejected')}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          className="col-span-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md"
+                          onClick={() => router.push(`/employer/applicants/profile/${applicant._id}`)}
+                        >
+                          <User className="w-4 h-4 mr-1" />
+                          View Profile
+                        </Button>
+                        
+                        {applicant.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md"
+                              onClick={() => updateApplicantStatus(applicant._id, 'shortlisted')}
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              Shortlist
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md"
+                              onClick={() => updateApplicantStatus(applicant._id, 'rejected')}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {applicant.status === 'shortlisted' && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md"
+                              onClick={() => {
+                                setSelectedApplicant(applicant);
+                                setInterviewDialogOpen(true);
+                              }}
+                            >
+                              <Video className="w-4 h-4 mr-1" />
+                              Schedule
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md"
+                              onClick={() => updateApplicantStatus(applicant._id, 'rejected')}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {applicant.status === 'interview_scheduled' && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md"
+                              onClick={() => updateApplicantStatus(applicant._id, 'hired')}
+                            >
+                              <Briefcase className="w-4 h-4 mr-1" />
+                              Hire
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md"
+                              onClick={() => updateApplicantStatus(applicant._id, 'rejected')}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

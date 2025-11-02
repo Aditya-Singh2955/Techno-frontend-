@@ -8,7 +8,7 @@ import Link from "next/link";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Edit2, X, Pause, Play, Eye, Users, Calendar, MapPin, DollarSign, RefreshCw } from "lucide-react";
+import { Edit2, X, Pause, Play, Eye, Users, Calendar, MapPin, DollarSign, RefreshCw, Briefcase, TrendingUp } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,

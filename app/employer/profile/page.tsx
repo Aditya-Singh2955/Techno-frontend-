@@ -1030,7 +1030,7 @@ export default function EmployerProfilePage() {
 
   const [profileCompletion, setProfileCompletion] = useState(0)
   const [points, setPoints] = useState(0)
-  const [tier, setTier] = useState("Silver")
+  const [tier, setTier] = useState("Blue")  
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
@@ -1087,6 +1087,7 @@ export default function EmployerProfilePage() {
           })
           setPoints(data.points || 0)
           setProfileCompletion(data.profileCompleted || 0)
+          // Tier will be calculated in the useEffect below based on points and team size
         }
       } catch (error: any) {
         toast({
@@ -1136,7 +1137,48 @@ export default function EmployerProfilePage() {
       setProfileCompletion(percentage)
       const newPoints = 80 + percentage * 2.5
       setPoints(Math.round(newPoints))
-      setTier(newPoints >= 300 ? "Platinum" : newPoints >= 200 ? "Gold" : "Silver")
+      
+      // Determine tier based on team size (points only for Platinum)
+      const determineTier = () => {
+        const teamSize = profileData.companyInfo.teamSize || "0-10";
+        let teamSizeNum = 0;
+        
+        // Handle different team size formats
+        if (teamSize.includes('+')) {
+          // Handle "1000+" format
+          teamSizeNum = parseInt(teamSize.replace('+', '')) || 0;
+        } else if (teamSize.includes('-')) {
+          // Handle "1-10", "11-50", etc.
+          teamSizeNum = parseInt(teamSize.split('-')[0]) || 0;
+        } else {
+          teamSizeNum = parseInt(teamSize) || 0;
+        }
+        
+        const companyName = profileData.companyInfo.companyName || "";
+        
+        // Check if company is in TOP_200_COMPANIES
+        const isTopCompany = TOP_200_COMPANIES.some(
+          (company) => company.toLowerCase() === companyName.toLowerCase()
+        );
+        
+        // Platinum tier: requires 500+ points
+        if (newPoints >= 500) return "Platinum";
+        
+        // All other tiers based ONLY on team size (no point requirements)
+        // If company size is 0-100, it should be Blue tier
+        if (teamSizeNum <= 100) return "Blue";
+        
+        // If company size is 101-500, it should be Silver tier
+        if (teamSizeNum >= 101 && teamSizeNum <= 500) return "Silver";
+        
+        // If company size is 501-1000 or TOP_200_COMPANIES, it should be Gold tier
+        if ((teamSizeNum >= 501 && teamSizeNum <= 1000) || isTopCompany) return "Gold";
+        
+        // Default fallback
+        return "Blue";
+      };
+      
+      setTier(determineTier())
     }
 
     calculateCompletion()
@@ -1267,6 +1309,7 @@ export default function EmployerProfilePage() {
         },
         profileCompleted: profileCompletion,
         points,
+        membershipTier: tier,
       }
 
       const response = await apiService.updateEmployerProfile(updateData)

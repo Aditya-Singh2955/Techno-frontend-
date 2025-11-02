@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
           activeJobs: 0,
           applications: 0,
           servicesOrders: 0,
-          premiumOrders: 0,
+          premiumOrders: 0, // Keep for API compatibility but don't display
         })
       } finally {
         setIsLoading(false)
@@ -76,13 +76,6 @@ export default function AdminDashboardPage() {
       icon: Star, 
       route: "/admin/services",
       color: "bg-pink-500",
-    },
-    { 
-      label: "Premium Orders", 
-      value: stats?.premiumOrders || 0, 
-      icon: Star, 
-      route: "/admin/rewards",
-      color: "bg-indigo-500",
     },
   ]
 
@@ -129,7 +122,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
         {statsConfig.map((s) => {
           const Icon = s.icon
           return (

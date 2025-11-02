@@ -18,7 +18,7 @@ const membershipTiers = [
     color: "text-blue-600",
     bg: "bg-blue-50",
     border: "border-blue-200",
-    desc: "0–4 Years Experience + No Employment Visa",
+    desc: "0–4 Years Experience",
   },
   {
     name: "Silver",
@@ -27,7 +27,7 @@ const membershipTiers = [
     color: "text-gray-600",
     bg: "bg-gray-50",
     border: "border-gray-200",
-    desc: ">=5 Years Experience + Employment Visa or Emirates ID",
+    desc: ">=5 Years Experience + Emirates ID",
   },
   {
     name: "Gold",
@@ -74,9 +74,9 @@ export default function JobSeekerRewardsPage() {
   // Calculate profile completion and points (same logic as other pages)
   const calculateProfileMetrics = (profile: any) => {
     let completed = 0;
-    const totalFields = 25;
+    const totalFields = 24; // employmentVisa removed
 
-    // Personal Info (10 fields)
+    // Personal Info (9 fields - employmentVisa removed)
     if (profile?.fullName) completed++;
     if (profile?.email) completed++;
     if (profile?.phoneNumber) completed++;
@@ -86,7 +86,6 @@ export default function JobSeekerRewardsPage() {
     if (profile?.professionalSummary) completed++;
     if (profile?.emirateId) completed++;
     if (profile?.passportNumber) completed++;
-    if (profile?.employmentVisa) completed++;
 
     // Experience (4 fields)
     const exp = profile?.professionalExperience?.[0];
@@ -128,13 +127,12 @@ export default function JobSeekerRewardsPage() {
   const determineUserTier = (profile: any, points: number) => {
     const yearsExp = profile?.professionalExperience?.[0]?.yearsOfExperience || 0;
     const isEmirati = profile?.nationality?.toLowerCase()?.includes("emirati");
-    const hasEmploymentVisa = profile?.employmentVisa === "yes";
     const hasEmiratesId = !!profile?.emirateId;
 
     if (points >= 500) return "Platinum";
     else if (isEmirati || yearsExp >= 10) return "Gold";
-    else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) return "Silver";
-    else if (yearsExp <= 4 || hasEmploymentVisa) return "Blue";
+    else if (yearsExp >= 5 && hasEmiratesId) return "Silver";
+    else if (yearsExp <= 4) return "Blue";
     else return "Silver";
   };
 

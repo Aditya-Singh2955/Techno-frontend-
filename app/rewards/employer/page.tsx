@@ -20,6 +20,7 @@ const employerTiers = [
     bg: "bg-blue-50",
     border: "border-blue-200",
     minPoints: 0,
+    pointsRequired: false,
     perks: [
       "Basic support",
       "Access to hiring dashboard",
@@ -34,7 +35,8 @@ const employerTiers = [
     color: "text-gray-600",
     bg: "bg-gray-50",
     border: "border-gray-200",
-    minPoints: 150,
+    minPoints: 0,
+    pointsRequired: false,
     perks: [
       "Earn points faster",
       "Small discount on RM services",
@@ -48,7 +50,8 @@ const employerTiers = [
     color: "text-yellow-600",
     bg: "bg-yellow-50",
     border: "border-yellow-200",
-    minPoints: 250,
+    minPoints: 0,
+    pointsRequired: false,
     perks: [
       "10% discount on premium HR services",
       "Priority support",
@@ -62,7 +65,8 @@ const employerTiers = [
     color: "text-emerald-700",
     bg: "bg-emerald-50",
     border: "border-emerald-200",
-    minPoints: 350,
+    minPoints: 500,
+    pointsRequired: true,
     perks: [
       "20% discount on all premium HR services",
       "Dedicated RM",
@@ -132,7 +136,7 @@ export default function EmployerRewardsPage() {
     if (profile?.industry) points += 25;
     if (profile?.teamSize) points += 25;
     if (profile?.foundedYear) points += 25;
-    if (profile?.description) points += 25;
+    if (profile?.aboutCompany) points += 25;
     
     // Points for posted jobs (if available)
     const postedJobs = profile?.postedJobs?.length || 0;
@@ -150,13 +154,30 @@ export default function EmployerRewardsPage() {
     const premiumServices = profile?.premiumServices?.length || 0;
     points += premiumServices * 20; // 20 points per premium service
     
+    // Use points from database if available (more accurate)
+    if (profile?.points) {
+      points = profile.points;
+    }
+    
     return points;
   };
 
-  // Determine employer tier based on points and company size
+  // Determine employer tier based on team size (points only for Platinum)
   const determineEmployerTier = (profile: any, points: number) => {
     const teamSize = profile?.teamSize || "0-10";
-    const teamSizeNum = parseInt(teamSize.split('-')[0]) || 0;
+    let teamSizeNum = 0;
+    
+    // Handle different team size formats
+    if (teamSize.includes('+')) {
+      // Handle "1000+" format
+      teamSizeNum = parseInt(teamSize.replace('+', '')) || 0;
+    } else if (teamSize.includes('-')) {
+      // Handle "1-10", "11-50", etc.
+      teamSizeNum = parseInt(teamSize.split('-')[0]) || 0;
+    } else {
+      teamSizeNum = parseInt(teamSize) || 0;
+    }
+    
     const companyName = profile?.companyName || "";
     
     // Check if company is in TOP_200_COMPANIES
@@ -164,9 +185,10 @@ export default function EmployerRewardsPage() {
       (company) => company.toLowerCase() === companyName.toLowerCase()
     );
     
-    // If employer gets 500+ points, they get Platinum tier
+    // Platinum tier: requires 500+ points
     if (points >= 500) return "Platinum";
     
+    // All other tiers based ONLY on team size (no point requirements)
     // If company size is 0-100, it should be Blue tier
     if (teamSizeNum <= 100) return "Blue";
     
@@ -176,10 +198,8 @@ export default function EmployerRewardsPage() {
     // If company size is 501-1000 or TOP_200_COMPANIES, it should be Gold tier
     if ((teamSizeNum >= 501 && teamSizeNum <= 1000) || isTopCompany) return "Gold";
     
-    if (points >= 350) return "Platinum";
-    else if (points >= 250 || teamSizeNum >= 500) return "Gold";
-    else if (points >= 150 || teamSizeNum >= 100) return "Silver";
-    else return "Blue";
+    // Default fallback
+    return "Blue";
   };
 
   // Fetch employer profile data
@@ -193,7 +213,7 @@ export default function EmployerRewardsPage() {
         return;
       }
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/profile', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -202,14 +222,20 @@ export default function EmployerRewardsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch employer profile');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch employer profile');
       }
 
       const data = await response.json();
+      
+      if (!data.success || !data.data) {
+        throw new Error('Invalid response from server');
+      }
+      
       setEmployerProfile(data.data);
       
-      // Calculate points and tier
-      const calculatedPoints = calculateEmployerPoints(data.data);
+      // Use database points if available, otherwise calculate
+      const calculatedPoints = data.data.points || calculateEmployerPoints(data.data);
       setUserPoints(calculatedPoints);
       
       const tier = determineEmployerTier(data.data, calculatedPoints);
@@ -234,14 +260,20 @@ export default function EmployerRewardsPage() {
 
   useEffect(() => {
     fetchEmployerProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Calculate tier and progress
   const currentTier = employerTiers.find((t) => t.name === userTier) || employerTiers[0];
-  const nextTier = employerTiers.find((t) => t.minPoints > userPoints);
-  const progressToNext = nextTier
-    ? ((userPoints - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100
-    : 100;
+  // Only show progress for Platinum tier (since other tiers are based on team size only)
+  const nextTier = currentTier.name === "Platinum" 
+    ? null // Platinum is the highest tier
+    : currentTier.name === "Gold" 
+    ? employerTiers.find((t) => t.name === "Platinum")
+    : employerTiers.find((t) => t.pointsRequired && t.minPoints > userPoints);
+  const progressToNext = nextTier && nextTier.pointsRequired
+    ? Math.min(100, ((userPoints / nextTier.minPoints) * 100))
+    : userTier === "Platinum" ? 100 : 0;
 
   if (loading) {
     return (
@@ -274,7 +306,13 @@ export default function EmployerRewardsPage() {
                   {userTier} Member
                 </Badge>
                 <div className="mt-2 text-gray-600 text-sm">
-                  {nextTier ? `${nextTier.minPoints - userPoints} points to ${nextTier.name}` : "Maximum tier reached!"}
+                  {userTier === "Platinum" 
+                    ? "Maximum tier reached!" 
+                    : nextTier && nextTier.pointsRequired
+                    ? `${nextTier.minPoints - userPoints} points to ${nextTier.name}`
+                    : nextTier
+                    ? `Upgrade company size to reach ${nextTier.name} tier`
+                    : "Maximum tier reached!"}
                 </div>
               </div>
             </div>
@@ -282,7 +320,7 @@ export default function EmployerRewardsPage() {
               <Progress value={progressToNext} className="h-3" />
               <div className="flex justify-between text-xs text-gray-600 mt-1">
                 <span>{currentTier.name}</span>
-                <span>{nextTier ? nextTier.name : "Max"}</span>
+                <span>{nextTier ? nextTier.name : (userTier === "Platinum" ? "Max" : "Based on team size")}</span>
               </div>
             </div>
           </CardContent>

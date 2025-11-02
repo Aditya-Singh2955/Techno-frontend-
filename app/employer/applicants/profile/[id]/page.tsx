@@ -388,7 +388,6 @@ export default function ApplicantProfilePage() {
   const candidate = applicantData.applicantDetails;
   const experience = candidate.professionalExperience?.[0];
   const education = candidate.education?.[0];
-  
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -470,7 +469,6 @@ export default function ApplicantProfilePage() {
                       <Badge className="bg-blue-100 text-blue-800 border border-blue-200 text-xs px-2 py-1">
                         🏆 {candidate.membershipTier || 'Blue'} Member
                       </Badge>
-                      <span className="text-gray-500">0</span>
                     </div>
                   </div>
                 </div>

@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    setIsLoading(true)
+    setIsLoading(true) 
     setError(null)
 
     try {
