@@ -37,6 +37,7 @@ export default function JobSeekerDashboard() {
   const [calculatedCompletion, setCalculatedCompletion] = useState(0);
   const [calculatedPoints, setCalculatedPoints] = useState(0);
   const [interviewCount, setInterviewCount] = useState(0);
+  const [serverPoints, setServerPoints] = useState<number | null>(null);
   const [referralStats, setReferralStats] = useState({ total: 0, active: 0, successful: 0 });
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
   const [rmServiceStatus, setRmServiceStatus] = useState("inactive");
@@ -48,7 +49,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
+      const response = await axios.get('http://localhost:4000/api/v1/applications/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -69,7 +70,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/interviews/jobseeker', {
+      const response = await axios.get('http://localhost:4000/api/v1/interviews/jobseeker', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -90,7 +91,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/referrals/history', {
+      const response = await axios.get('http://localhost:4000/api/v1/applications/referrals/history', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -118,7 +119,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
+      const response = await axios.get('http://localhost:4000/api/v1/jobs/recommendations', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -180,8 +181,9 @@ export default function JobSeekerDashboard() {
     const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
     const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
     const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
+    const socialMediaBonus = profile?.rewards?.socialMediaBonus || 0; // Bonus points from following social media
     const deductedPoints = profile?.deductedPoints || 0;
-    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus;
     const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return { percentage, points: availablePoints };
@@ -197,7 +199,7 @@ export default function JobSeekerDashboard() {
           return;
         }
 
-        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+        const response = await fetch('http://localhost:4000/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -211,11 +213,26 @@ export default function JobSeekerDashboard() {
 
         const data = await response.json();
         setUserProfile(data.data);
+        // Prefer server points if provided
+        const apiPoints = (typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? null));
+        if (apiPoints !== null) {
+          setServerPoints(apiPoints);
+        } else {
+          setServerPoints(null);
+        }
         
         // Calculate metrics locally
         const metrics = calculateProfileMetrics(data.data);
         setCalculatedCompletion(metrics.percentage);
-        setCalculatedPoints(metrics.points);
+        // If server points available, display that (minus deductedPoints); else use calculated
+        const dp = data.data?.deductedPoints || 0;
+        if (typeof data.data.points === 'number') {
+          setCalculatedPoints(Math.max(0, data.data.points - dp));
+        } else if (typeof data.data.rewards?.totalPoints === 'number') {
+          setCalculatedPoints(Math.max(0, data.data.rewards.totalPoints - dp));
+        } else {
+          setCalculatedPoints(metrics.points);
+        }
         
         // Set RM Service status
         setRmServiceStatus(data.data.rmService === "Active" ? "active" : "inactive");

@@ -57,7 +57,7 @@ export interface UsersApiParams {
 }
 
 // API Base URL - adjust according to your backend setup
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
 // Users API Functions
 export const getJobseekers = async (params: UsersApiParams = {}): Promise<UsersApiResponse> => {
@@ -490,7 +490,7 @@ export const updateUserStatus = async (userId: string, status: 'active' | 'block
 
 // Get individual user by ID
 export const getJobseekerById = async (id: string): Promise<Jobseeker> => {
-  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/jobseeker/${id}`, {
+  const response = await fetch(`http://localhost:4000/api/v1/admin/users/jobseeker/${id}`, {
     headers: getAuthHeaders(),
   });
   
@@ -503,7 +503,7 @@ export const getJobseekerById = async (id: string): Promise<Jobseeker> => {
 };
 
 export const getEmployerById = async (id: string): Promise<Employer> => {
-  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/employer/${id}`, {
+  const response = await fetch(`http://localhost:4000/api/v1/admin/users/employer/${id}`, {
     headers: getAuthHeaders(),
   });
   

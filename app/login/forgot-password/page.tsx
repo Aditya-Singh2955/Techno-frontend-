@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
 
     try {
       // API call to send password reset email
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'}/auth/forgot-password`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

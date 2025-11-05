@@ -40,7 +40,7 @@ const membershipTiers = [
   },
   {
     name: "Platinum",
-    minPoints: 350,
+    minPoints: 500,
     icon: Gift,
     color: "text-purple-600",
     bg: "bg-purple-50",
@@ -71,7 +71,7 @@ export default function JobSeekerRewardsPage() {
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
-  // Calculate profile completion and points (same logic as other pages)
+  // Calculate profile completion and points (fallback when server points missing)
   const calculateProfileMetrics = (profile: any) => {
     let completed = 0;
     const totalFields = 24; // employmentVisa removed
@@ -116,8 +116,9 @@ export default function JobSeekerRewardsPage() {
     const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
     const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
     const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
+    const socialMediaBonus = profile?.rewards?.socialMediaBonus || 0; // Points from following social media
     const deductedPoints = profile?.deductedPoints || 0;
-    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus;
     const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return { percentage, points: availablePoints };
@@ -147,7 +148,7 @@ export default function JobSeekerRewardsPage() {
         return;
       }
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+      const response = await fetch('http://localhost:4000/api/v1/profile/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -162,20 +163,23 @@ export default function JobSeekerRewardsPage() {
       const data = await response.json();
       setUserProfile(data.data);
       
-      // Calculate metrics
+      // Prefer server points when present
+      const apiPoints = (typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? null));
+      const deducted = data.data?.deductedPoints || 0;
       const metrics = calculateProfileMetrics(data.data);
       setProfileCompletion(metrics.percentage);
-      setUserPoints(metrics.points);
+      setUserPoints(apiPoints !== null ? Math.max(0, apiPoints - deducted) : metrics.points);
       
       // Calculate referral and activity points
       const referralRewardPoints = data.data.referralRewardPoints || 0;
-      const activityRewardPoints = metrics.points - referralRewardPoints;
+      const basePoints = (apiPoints !== null ? Math.max(0, apiPoints - deducted) : metrics.points);
+      const activityRewardPoints = basePoints - referralRewardPoints;
       
       setReferralPoints(referralRewardPoints);
       setActivityPoints(Math.max(0, activityRewardPoints));
       
       // Determine tier
-      const tier = determineUserTier(data.data, metrics.points);
+      const tier = determineUserTier(data.data, (apiPoints !== null ? Math.max(0, apiPoints - deducted) : metrics.points));
       setUserTier(tier);
       
     } catch (error) {
@@ -295,7 +299,7 @@ export default function JobSeekerRewardsPage() {
             <div className="flex items-center space-x-3">
               <UserCheck className="w-6 h-6 text-emerald-600" />
               <span>Complete your profile</span>
-              <Badge className="bg-emerald-100 text-emerald-800 ml-2">+100</Badge>
+              <Badge className="bg-emerald-100 text-emerald-800 ml-2">+250</Badge>
             </div>
             <div className="flex items-center space-x-3">
               <FileText className="w-6 h-6 text-blue-600" />

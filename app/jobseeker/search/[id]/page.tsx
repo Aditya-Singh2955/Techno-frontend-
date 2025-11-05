@@ -85,7 +85,7 @@ export default function JobDetailsPage({ params }: { params: Promise<{ id: strin
       setIsLoading(true);
       console.log('Fetching job with ID:', id);
       
-      const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${id}`);
+      const response = await axios.get(`http://localhost:4000/api/v1/jobs/${id}`);
       console.log('Job API Response:', response.data);
       
       if (response.data && response.data.data) {
@@ -171,10 +171,10 @@ export default function JobDetailsPage({ params }: { params: Promise<{ id: strin
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       
       // Fetch fresh profile data for completion check
-      console.log('🌐 Making API call to: https://techno-backend-a0s0.onrender.com/api/v1/profile/details');
+      console.log('🌐 Making API call to: http://localhost:4000/api/v1/profile/details');
       console.log('🔑 Using token:', token ? 'Token exists' : 'No token');
       
-      const profileResponse = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+      const profileResponse = await axios.get('http://localhost:4000/api/v1/profile/details', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -223,7 +223,7 @@ export default function JobDetailsPage({ params }: { params: Promise<{ id: strin
         resume: userData?.resumeUrl || userData?.resume || "profile-resume.pdf",
       };
       
-      await axios.post('https://techno-backend-a0s0.onrender.com/api/v1/applications', applicationData, {
+      await axios.post('http://localhost:4000/api/v1/applications', applicationData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

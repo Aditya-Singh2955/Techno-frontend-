@@ -18,7 +18,7 @@ export default function CartPage() {
   const { toast } = useToast()
   const router = useRouter()
 
-  // Calculate profile points (same logic as dashboard)
+  // Calculate profile points (same logic as dashboard) - fallback only
   const calculateProfilePoints = (profile: any) => {
     let completed = 0;
     const totalFields = 24; // Same as dashboard (employmentVisa removed)
@@ -63,8 +63,9 @@ export default function CartPage() {
     const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
     const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
     const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
+    const socialMediaBonus = profile?.rewards?.socialMediaBonus || 0; // Points from following social media
     const deductedPoints = profile?.deductedPoints || 0;
-    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus;
     const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return availablePoints;
@@ -85,7 +86,7 @@ export default function CartPage() {
           return
         }
 
-        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+        const response = await fetch('http://localhost:4000/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -99,9 +100,16 @@ export default function CartPage() {
 
         const data = await response.json()
         if (data.success && data.data) {
-          // Use the same calculation logic as dashboard
-          const calculatedPoints = calculateProfilePoints(data.data)
-          setUserPoints(calculatedPoints)
+          // Prefer server points when available
+          const apiPoints = (typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? null))
+          const deducted = data.data?.deductedPoints || 0
+          if (apiPoints !== null) {
+            setUserPoints(Math.max(0, apiPoints - deducted))
+          } else {
+            // Fallback to local calculation
+            const calc = calculateProfilePoints(data.data)
+            setUserPoints(calc)
+          }
         }
     } catch (error) {
       toast({
@@ -185,6 +193,7 @@ export default function CartPage() {
 
   const handlePlaceOrder = async () => {
     try {
+      setIsLoading(true)
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
       if (!token) {
         toast({
@@ -196,6 +205,16 @@ export default function CartPage() {
         return
       }
 
+      if (removed || cart.length === 0) {
+        toast({
+          title: "Cart Empty",
+          description: "Please add items to your cart before placing an order.",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+
       const orderData = {
         service: "Virtual RM Service",
         price: AED_PRICE,
@@ -204,7 +223,7 @@ export default function CartPage() {
         totalAmount: total
       }
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/orders', {
+      const response = await fetch('http://localhost:4000/api/v1/orders', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -231,12 +250,15 @@ export default function CartPage() {
       
       // Redirect to dashboard or payment page
       setTimeout(() => router.push("/jobseeker/dashboard"), 1000)
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Order error:', error)
       toast({
         title: "Order Failed",
-        description: "Failed to place order. Please try again.",
+        description: error.message || "Failed to place order. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -250,7 +272,7 @@ export default function CartPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
       if (!token) return
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+      const response = await fetch('http://localhost:4000/api/v1/profile/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -261,11 +283,17 @@ export default function CartPage() {
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.data) {
-          const calculatedPoints = calculateProfilePoints(data.data)
-          setUserPoints(calculatedPoints)
+          const apiPoints = (typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? null))
+          const deducted = data.data?.deductedPoints || 0
+          if (apiPoints !== null) {
+            setUserPoints(Math.max(0, apiPoints - deducted))
+          } else {
+            const calc = calculateProfilePoints(data.data)
+            setUserPoints(calc)
+          }
           toast({
             title: "Points Refreshed",
-            description: `Your current balance is ${calculatedPoints} points.`,
+            description: `Your current balance is ${apiPoints !== null ? Math.max(0, apiPoints - deducted) : userPoints} points.`,
           })
         }
       }

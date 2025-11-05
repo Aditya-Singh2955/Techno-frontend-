@@ -33,7 +33,7 @@ import { FileUpload } from "@/components/file-upload"
 import { useAuth } from "@/contexts/auth-context"
 import { FollowUs } from "@/components/follow-us"
 
-const API_BASE_URL = "https://techno-backend-a0s0.onrender.com"
+const API_BASE_URL = "http://localhost:4000"
 
 interface ProfileData {
   personalInfo: {
@@ -91,6 +91,7 @@ interface ProfileData {
     applyForJobs?: number
     rmService?: number
     totalPoints?: number
+    socialMediaBonus?: number
   }
 }
 
@@ -145,6 +146,7 @@ export default function JobSeekerProfilePage() {
   const [profileCompletion, setProfileCompletion] = useState(0)
   const [points, setPoints] = useState(0)
   const [tier, setTier] = useState("Blue")
+  const [serverPoints, setServerPoints] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
@@ -266,6 +268,13 @@ export default function JobSeekerProfilePage() {
           },
           deductedPoints: apiData.deductedPoints || 0,
         }))
+        // Prefer server points if provided
+        const apiPoints = (typeof apiData.points === 'number' ? apiData.points : (apiData.rewards?.totalPoints ?? null))
+        if (apiPoints !== null) {
+          setServerPoints(apiPoints)
+          const dp = apiData.deductedPoints || 0
+          setPoints(Math.max(0, apiPoints - dp))
+        }
         
         // Points will be calculated in the useEffect based on profile completion and deductedPoints
         
@@ -274,7 +283,9 @@ export default function JobSeekerProfilePage() {
         }
         
         if (apiData.rewards?.completeProfile !== undefined) {
-          setProfileCompletion(apiData.rewards.completeProfile)
+          const cp = parseInt(apiData.rewards.completeProfile) || 0
+          const normalized = cp > 100 ? Math.min(100, Math.round((cp / 250) * 100)) : cp
+          setProfileCompletion(normalized)
         } else if (apiData.profileCompleted !== undefined) {
           setProfileCompletion(parseInt(apiData.profileCompleted) || 0)
         }
@@ -298,6 +309,13 @@ export default function JobSeekerProfilePage() {
       
       if (!token) {
         throw new Error('No authentication token found')
+      }
+
+      // Validate Emirates ID if provided: exactly 15 digits
+      const emiratesIdVal = profileData.personalInfo.emiratesId?.trim()
+      if (emiratesIdVal && !/^\d{15}$/.test(emiratesIdVal)) {
+        toast({ title: "Invalid Emirates ID", description: "Emirates ID must be exactly 15 digits.", variant: "destructive" })
+        return
       }
 
       // Map local state to API format (matching your backend controller)
@@ -386,7 +404,9 @@ export default function JobSeekerProfilePage() {
           // Update profile completion if returned by backend
           const updatedUser = data.data
           if (updatedUser.rewards) {
-            setProfileCompletion(updatedUser.rewards.completeProfile || profileCompletion)
+            const cp = parseInt(updatedUser.rewards.completeProfile) || 0
+            const normalized = cp > 100 ? Math.min(100, Math.round((cp / 250) * 100)) : cp
+            setProfileCompletion(normalized || profileCompletion)
           }
           // Points will be recalculated in the useEffect
         }
@@ -465,14 +485,20 @@ export default function JobSeekerProfilePage() {
       const percentage = Math.round((completed / totalFields) * 100)
       setProfileCompletion(percentage)
 
-      // Calculate points based on completion (same logic as dashboard and cart)
-      const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
-      const applicationPoints = profileData?.rewards?.applyForJobs || 0; // Points from job applications
-      const rmServicePoints = profileData?.rewards?.rmService || 0; // Points from RM service purchase
-      const deductedPoints = profileData.deductedPoints || 0
-      const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
-      const availablePoints = Math.max(0, totalPoints - deductedPoints)
-      setPoints(availablePoints)
+      // If server provided authoritative points, prefer that display
+      const dp = profileData.deductedPoints || 0
+      if (serverPoints !== null) {
+        setPoints(Math.max(0, serverPoints - dp))
+      } else {
+        // Calculate points based on completion (same logic as backend)
+        const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+        const applicationPoints = profileData?.rewards?.applyForJobs || 0; // Points from job applications
+        const rmServicePoints = profileData?.rewards?.rmService || 0; // Points from RM service purchase
+        const socialMediaBonus = profileData?.rewards?.socialMediaBonus || 0; // Bonus points from following social media
+        const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus
+        const availablePoints = Math.max(0, totalPoints - dp)
+        setPoints(availablePoints)
+      }
 
       // Determine tier
       let yearsExp = 0;
@@ -876,8 +902,19 @@ export default function JobSeekerProfilePage() {
                   <Input
                     id="emiratesId"
                     value={profileData.personalInfo.emiratesId}
-                    onChange={(e) => handleInputChange("personalInfo", "emiratesId", e.target.value)}
-                    placeholder="Enter your Emirates ID (optional)"
+                    inputMode="numeric"
+                    maxLength={15}
+                    pattern="\\d{15}"
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/[^0-9]/g, '').slice(0, 15)
+                      handleInputChange("personalInfo", "emiratesId", digitsOnly)
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault()
+                      const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 15)
+                      handleInputChange("personalInfo", "emiratesId", pasted)
+                    }}
+                    placeholder="Enter 15-digit Emirates ID"
                   />
                 </div>
                 <div className="space-y-2">

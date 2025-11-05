@@ -10,7 +10,20 @@ import { Trophy, Star, Award, Crown, Users, Briefcase, Gift, ArrowRight, Refresh
 import { useToast } from "@/hooks/use-toast"
 import { TOP_200_COMPANIES } from "@/lib/utils"
 
-const employerTiers = [
+type EmployerTier = {
+  name: string
+  label: string
+  employees: string
+  icon: any
+  color: string
+  bg: string
+  border: string
+  minPoints: number
+  pointsRequired: boolean
+  perks?: string[]
+}
+
+const employerTiers: EmployerTier[] = [
   {
     name: "Blue",
     label: "Starter Tier",
@@ -21,11 +34,7 @@ const employerTiers = [
     border: "border-blue-200",
     minPoints: 0,
     pointsRequired: false,
-    perks: [
-      "Basic support",
-      "Access to hiring dashboard",
-      "Tier-based points",
-    ],
+    
   },
   {
     name: "Silver",
@@ -37,10 +46,7 @@ const employerTiers = [
     border: "border-gray-200",
     minPoints: 0,
     pointsRequired: false,
-    perks: [
-      "Earn points faster",
-      "Small discount on RM services",
-    ],
+    
   },
   {
     name: "Gold",
@@ -52,10 +58,7 @@ const employerTiers = [
     border: "border-yellow-200",
     minPoints: 0,
     pointsRequired: false,
-    perks: [
-      "10% discount on premium HR services",
-      "Priority support",
-    ],
+    
   },
   {
     name: "Platinum",
@@ -67,21 +70,11 @@ const employerTiers = [
     border: "border-emerald-200",
     minPoints: 500,
     pointsRequired: true,
-    perks: [
-      "20% discount on all premium HR services",
-      "Dedicated RM",
-      "Early access to features",
-    ],
+    
   },
 ]
 
 const howToEarn = [
-  {
-    icon: Users,
-    label: "Invite other employers",
-    badge: "+100",
-    color: "bg-emerald-100 text-emerald-800",
-  },
   {
     icon: Briefcase,
     label: "Post a job",
@@ -213,7 +206,7 @@ export default function EmployerRewardsPage() {
         return;
       }
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/details', {
+      const response = await fetch('http://localhost:4000/api/v1/employer/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -365,7 +358,7 @@ export default function EmployerRewardsPage() {
                     <Badge className="mb-2 gradient-bg text-white">{tier.label}</Badge>
                     <p className="text-xs text-gray-600 mb-2">Employees: {tier.employees}</p>
                     <ul className="text-xs text-gray-700 mb-2 space-y-1 text-left">
-                      {tier.perks.map((perk, i) => (
+                      {(tier.perks || []).map((perk: string, i: number) => (
                         <li key={i} className="flex items-center gap-2">
                           <span className="inline-block w-1.5 h-1.5 bg-emerald-400 rounded-full" />
                           {perk}

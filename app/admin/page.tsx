@@ -53,7 +53,7 @@ export default function AdminDashboardPage() {
       label: "Employers", 
       value: stats?.employers || 0, 
       icon: Users, 
-      route: "/admin/users",
+      route: "/admin/users?tab=employers",
       color: "bg-emerald-500",
     },
     { 
@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
       label: "Applications", 
       value: stats?.applications || 0, 
       icon: FileText, 
-      route: "/admin/jobs",
+      route: "/admin/applications",
       color: "bg-orange-500",
     },
     { 

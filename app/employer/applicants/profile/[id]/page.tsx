@@ -170,7 +170,7 @@ export default function ApplicantProfilePage() {
         }
 
         // Fetch applicant data using the application ID
-        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${idParam}`, {
+        const response = await axios.get(`http://localhost:4000/api/v1/applications/${idParam}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -205,7 +205,7 @@ export default function ApplicantProfilePage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/employer/reviews/application/${idParam}`, {
+      const response = await axios.get(`http://localhost:4000/api/v1/employer/reviews/application/${idParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -240,7 +240,7 @@ export default function ApplicantProfilePage() {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicantData._id}/status`, {
+      await axios.patch(`http://localhost:4000/api/v1/applications/${applicantData._id}/status`, {
         status: newStatus
       }, {
         headers: {
@@ -274,7 +274,7 @@ export default function ApplicantProfilePage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const interviewDateTime = `${interviewDetails.date}T${interviewDetails.time}`;
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicantData._id}/status`, {
+      await axios.patch(`http://localhost:4000/api/v1/applications/${applicantData._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
         interviewDate: interviewDateTime,
@@ -322,7 +322,7 @@ export default function ApplicantProfilePage() {
         interviewNotes: employerReview.interviewNotes
       };
 
-      await axios.post(`https://techno-backend-a0s0.onrender.com/api/v1/employer/reviews`, reviewData, {
+      await axios.post(`http://localhost:4000/api/v1/employer/reviews`, reviewData, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -789,10 +789,9 @@ export default function ApplicantProfilePage() {
           )}
 
           {/* Profile Statistics */}
-          
 
            {/* Action Buttons */}
-           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+           <div className="flex flex-wrap items-center justify-center gap-4">
              {applicantData.status === 'pending' && (
                <>
                  <Button
@@ -844,11 +843,9 @@ export default function ApplicantProfilePage() {
              )}
              
              {(applicantData.status === 'hired' || applicantData.status === 'rejected') && (
-               <div className="text-center py-4">
-                 <Badge className={`text-lg px-6 py-2 ${statusColor(applicantData.status)}`}>
-                   {formatStatus(applicantData.status)}
-                 </Badge>
-               </div>
+               <Badge className={`text-sm sm:text-base px-4 py-2 ${statusColor(applicantData.status)}`}>
+                 {formatStatus(applicantData.status)}
+               </Badge>
              )}
              
              {/* Review Button - Available for all statuses */}

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { CompanyProfileView } from "@/components/company-profile"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
-const API_BASE_URL = 'https://techno-backend-a0s0.onrender.com/api/v1'
+const API_BASE_URL = 'http://localhost:4000/api/v1'
 
 export default function PublicCompanyProfilePage() {
   const { id } = useParams() as { id: string }

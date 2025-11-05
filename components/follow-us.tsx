@@ -22,7 +22,7 @@ export function FollowUs({ onPointsEarned }: FollowUsProps) {
         const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
         if (!token) return
 
-        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+        const response = await fetch('http://localhost:4000/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -80,7 +80,7 @@ export function FollowUs({ onPointsEarned }: FollowUsProps) {
       // Map platform name to API format
       const platformKey = platform === 'LinkedIn' ? 'linkedIn' : 'instagram'
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/follow-social', {
+      const response = await fetch('http://localhost:4000/api/v1/profile/follow-social', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

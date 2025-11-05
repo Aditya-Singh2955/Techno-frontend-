@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { AdminDataTable } from "@/components/admin-data-table"
 import { Jobseeker, Employer } from "@/lib/admin-types"
 import { blockUser, unblockUser, getUsersByType, type UsersApiResponse } from "@/lib/admin-api"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, Download, Ban, RefreshCw } from "lucide-react"
 import * as XLSX from 'xlsx'
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -23,6 +23,7 @@ import {
 
 export default function AdminUsersPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<'jobseekers' | 'employers'>('jobseekers')
   const [jobseekers, setJobseekers] = useState<Jobseeker[]>([])
   const [employers, setEmployers] = useState<Employer[]>([])
@@ -76,6 +77,10 @@ export default function AdminUsersPage() {
 
   // Pre-fetch both counts on initial mount so counts are available for both tabs
   useEffect(() => {
+    // Initialize tab from query (?tab=employers|jobseekers)
+    const initialTab = searchParams?.get('tab') === 'employers' ? 'employers' : 'jobseekers'
+    setActiveTab(initialTab)
+
     const fetchInitialCounts = async () => {
       if (hasInitialFetch.current) return
       hasInitialFetch.current = true

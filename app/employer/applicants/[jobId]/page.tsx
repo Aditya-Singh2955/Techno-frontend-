@@ -156,7 +156,7 @@ export default function JobApplicantsPage() {
       }
 
       // Fetch job details
-      const jobResponse = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}`, {
+      const jobResponse = await axios.get(`http://localhost:4000/api/v1/jobs/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -164,7 +164,7 @@ export default function JobApplicantsPage() {
       setJobDetails(jobResponse.data.data);
 
       // Fetch applicants
-      const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/job/${jobId}`, {
+      const response = await axios.get(`http://localhost:4000/api/v1/applications/job/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -201,7 +201,7 @@ export default function JobApplicantsPage() {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}/status`, {
+      await axios.patch(`http://localhost:4000/api/v1/applications/${applicationId}/status`, {
         status: newStatus,
         notes
       }, {
@@ -233,7 +233,7 @@ export default function JobApplicantsPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const interviewDateTime = `${interviewDetails.date}T${interviewDetails.time}`;
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${selectedApplicant._id}/status`, {
+      await axios.patch(`http://localhost:4000/api/v1/applications/${selectedApplicant._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
         interviewDate: interviewDateTime,

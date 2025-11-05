@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/create-admin", label: "Create Admin Account", icon: Star },
   { href: "/admin/jobs", label: "Jobs & Applications", icon: Briefcase },
   { href: "/admin/services", label: "Services & Orders", icon: FileText },
   { href: "/admin/service-management", label: "Service Management", icon: Settings },

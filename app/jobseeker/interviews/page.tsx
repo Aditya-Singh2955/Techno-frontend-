@@ -67,7 +67,7 @@ export default function InterviewsPage() {
         return;
       }
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/interviews/jobseeker', {
+      const response = await axios.get('http://localhost:4000/api/v1/interviews/jobseeker', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
