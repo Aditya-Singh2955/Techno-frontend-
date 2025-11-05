@@ -5,7 +5,7 @@ const stripePromise = loadStripe('pk_live_51S4LIREl1CkK0bxwftxVQNZOjRBMAAZAiCmSV
 export default function CheckoutButton({ items }) {
   const handleCheckout = async () => {
     // call your backend to create session
-    const res = await fetch('http://localhost:4000/create-checkout-session', {
+    const res = await fetch('https://techno-backend-a0s0.onrender.com/create-checkout-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items }),

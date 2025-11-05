@@ -181,7 +181,7 @@ export default function AllApplicantsPage() {
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
       if (jobFilter && jobFilter !== 'all') params.append('jobId', jobFilter);
 
-      const response = await axios.get(`http://localhost:4000/api/v1/applications/employer?${params}`, {
+      const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/employer?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -207,7 +207,7 @@ export default function AllApplicantsPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:4000/api/v1/employer/jobs', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/employer/jobs', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -244,7 +244,7 @@ export default function AllApplicantsPage() {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      await axios.patch(`http://localhost:4000/api/v1/applications/${applicationId}/status`, {
+      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}/status`, {
         status: newStatus
       }, {
         headers: {
@@ -276,7 +276,7 @@ export default function AllApplicantsPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const interviewDateTime = `${interviewDetails.date}T${interviewDetails.time}`;
       
-      await axios.patch(`http://localhost:4000/api/v1/applications/${selectedApplicant._id}/status`, {
+      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${selectedApplicant._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
         interviewDate: interviewDateTime,

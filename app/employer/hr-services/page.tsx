@@ -88,7 +88,7 @@ export default function HRServicesPage() {
       }
 
       // Save quote request to database
-      const response = await fetch('http://localhost:4000/api/v1/quotes', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/quotes', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

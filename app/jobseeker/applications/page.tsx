@@ -108,7 +108,7 @@ export default function ApplicationsPage() {
         return;
       }
 
-      const response = await axios.get('http://localhost:4000/api/v1/applications/user', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

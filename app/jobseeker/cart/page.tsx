@@ -86,7 +86,7 @@ export default function CartPage() {
           return
         }
 
-        const response = await fetch('http://localhost:4000/api/v1/profile/details', {
+        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -223,7 +223,7 @@ export default function CartPage() {
         totalAmount: total
       }
 
-      const response = await fetch('http://localhost:4000/api/v1/orders', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/orders', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -272,7 +272,7 @@ export default function CartPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
       if (!token) return
 
-      const response = await fetch('http://localhost:4000/api/v1/profile/details', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

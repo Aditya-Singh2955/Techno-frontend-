@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Handle admin login with backend API
       if (type === "admin") {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'
         const resp = await fetch(`${API_BASE_URL}/admin/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

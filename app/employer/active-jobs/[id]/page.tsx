@@ -49,7 +49,7 @@ export default function JobDetailPage() {
           return;
         }
 
-        const response = await axios.get(`http://localhost:4000/api/v1/jobs/${jobId}`, {
+        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -99,7 +99,7 @@ export default function JobDetailPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const newStatus = jobData.status === 'active' ? 'paused' : 'active';
       
-      await axios.put(`http://localhost:4000/api/v1/jobs/${jobId}`, 
+      await axios.put(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}`, 
         { status: newStatus },
         {
           headers: {
@@ -135,7 +135,7 @@ export default function JobDetailPage() {
       setIsUpdating(true);
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      await axios.put(`http://localhost:4000/api/v1/jobs/${jobId}/close`, {}, {
+      await axios.put(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}/close`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

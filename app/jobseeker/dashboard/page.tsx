@@ -49,7 +49,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:4000/api/v1/applications/user', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -70,7 +70,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:4000/api/v1/interviews/jobseeker', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/interviews/jobseeker', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -91,7 +91,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:4000/api/v1/applications/referrals/history', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/referrals/history', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -119,7 +119,7 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('http://localhost:4000/api/v1/jobs/recommendations', {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -199,7 +199,7 @@ export default function JobSeekerDashboard() {
           return;
         }
 
-        const response = await fetch('http://localhost:4000/api/v1/profile/details', {
+        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

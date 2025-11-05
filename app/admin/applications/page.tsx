@@ -44,7 +44,7 @@ export default function AdminApplicationsPage() {
       try {
         setIsLoading(true)
         setError(null)
-        const res = await fetch('http://localhost:4000/api/v1/admin/applications')
+        const res = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/admin/applications')
         const json = await res.json()
         if (!res.ok || !json.success) {
           throw new Error(json.message || 'Failed to fetch applications')
