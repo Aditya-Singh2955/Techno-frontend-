@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { UserPlus, ArrowLeft, Calendar, User, Building, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react"
+import { UserPlus, ArrowLeft, Calendar, User, Building, CheckCircle, Clock, XCircle, Loader2, Eye } from "lucide-react"
 import Link from "next/link"
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -24,6 +24,7 @@ interface ReferralHistoryItem {
   status: 'pending' | 'shortlisted' | 'interview_scheduled' | 'hired' | 'rejected';
   lastUpdate: string;
   applicationId: string;
+  jobId?: string;
   matchScore: number;
 }
 
@@ -339,11 +340,12 @@ export default function ReferralHistoryPage() {
                       <TableHead className="font-semibold text-gray-700">Status</TableHead>
                       <TableHead className="font-semibold text-gray-700">Match Score</TableHead>
                       <TableHead className="font-semibold text-gray-700">Last Update</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredReferralHistory.map((referral) => (
-                      <TableRow key={referral.id} className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer">
+                      <TableRow key={referral.id} className="hover:bg-gray-50 transition-colors duration-200">
                         <TableCell>
                           <div className="flex items-center space-x-2">
                             <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -393,6 +395,41 @@ export default function ReferralHistoryPage() {
                         </TableCell>
                         <TableCell>
                           <span className="text-sm text-gray-600">{getTimeAgo(referral.lastUpdate)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                // Fetch application to get jobId
+                                const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
+                                const appResponse = await axios.get(`${API_BASE_URL}/applications/${referral.applicationId}`, {
+                                  headers: { 'Authorization': `Bearer ${token}` }
+                                })
+                                const jobId = appResponse.data.data?.jobId?._id || appResponse.data.data?.jobId
+                                if (jobId) {
+                                  router.push(`/jobseeker/refer-friend/${jobId}?view=true&applicationId=${referral.applicationId}`)
+                                } else {
+                                  toast({
+                                    title: "Error",
+                                    description: "Could not find job information",
+                                    variant: "destructive"
+                                  })
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to load referral details",
+                                  variant: "destructive"
+                                })
+                              }
+                            }}
+                            className="flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -446,6 +483,41 @@ export default function ReferralHistoryPage() {
                           <span className="text-sm font-medium">{referral.matchScore}% Match</span>
                         </div>
                         <span className="text-xs text-gray-500">{getTimeAgo(referral.lastUpdate)}</span>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              // Fetch application to get jobId
+                              const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
+                              const appResponse = await axios.get(`${API_BASE_URL}/applications/${referral.applicationId}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                              })
+                              const jobId = appResponse.data.data?.jobId?._id || appResponse.data.data?.jobId
+                              if (jobId) {
+                                router.push(`/jobseeker/refer-friend/${jobId}?view=true&applicationId=${referral.applicationId}`)
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description: "Could not find job information",
+                                  variant: "destructive"
+                                })
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to load referral details",
+                                variant: "destructive"
+                              })
+                            }
+                          }}
+                          className="w-full flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" />
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   </div>

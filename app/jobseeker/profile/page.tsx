@@ -1458,23 +1458,72 @@ export default function JobSeekerProfilePage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = profileData.resumeDocument;
-                            // Extract filename from URL for download
-                            try {
-                              const urlParts = profileData.resumeDocument.split('/');
-                              const lastPart = urlParts[urlParts.length - 1];
-                              if (lastPart && lastPart.includes('.')) {
-                                const cleanFilename = lastPart.split('?')[0];
-                                link.download = cleanFilename || 'resume';
-                              } else {
-                                link.download = 'resume';
-                              }
-                            } catch {
-                              link.download = 'resume';
+                          onClick={async () => {
+                            if (!profileData.resumeDocument) {
+                              toast({
+                                title: "Resume Not Available",
+                                description: "No resume uploaded.",
+                                variant: "destructive",
+                              });
+                              return;
                             }
-                            link.click();
+
+                            try {
+                              const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+                              
+                              // Fetch the file as a blob
+                              const response = await fetch(profileData.resumeDocument, {
+                                method: 'GET',
+                                headers: token ? {
+                                  'Authorization': `Bearer ${token}`,
+                                } : {},
+                              });
+
+                              if (!response.ok) {
+                                throw new Error('Failed to fetch resume');
+                              }
+
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              
+                              // Get file extension from URL or default to pdf
+                              const urlLower = profileData.resumeDocument.toLowerCase();
+                              let extension = 'pdf';
+                              if (urlLower.includes('.doc')) extension = 'doc';
+                              else if (urlLower.includes('.docx')) extension = 'docx';
+                              else if (urlLower.includes('.txt')) extension = 'txt';
+                              
+                              // Create a temporary anchor element to trigger download
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `${profileData.personalInfo.fullName || 'Resume'}_CV.${extension}`;
+                              document.body.appendChild(link);
+                              link.click();
+                              
+                              // Clean up
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+
+                              toast({
+                                title: "Download Started",
+                                description: "Resume download has started.",
+                              });
+                            } catch (error) {
+                              // Fallback: try opening in new tab if download fails
+                              try {
+                                window.open(profileData.resumeDocument, '_blank');
+                                toast({
+                                  title: "Opening Resume",
+                                  description: "Resume opened in a new tab.",
+                                });
+                              } catch (fallbackError) {
+                                toast({
+                                  title: "Download Error",
+                                  description: "Failed to download resume. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }
                           }}
                           className="h-8 px-3"
                         >

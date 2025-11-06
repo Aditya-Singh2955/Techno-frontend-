@@ -23,7 +23,9 @@ import {
   Clock,
   Video,
   Star,
-  TrendingUp
+  TrendingUp,
+  Undo2,
+  ChevronDown
 } from "lucide-react";
 import {
   Select,
@@ -154,6 +156,9 @@ export default function AllApplicantsPage() {
     mode: "in-person",
     notes: ""
   });
+  const [statusHistory, setStatusHistory] = useState<Record<string, string>>({}); // Track previous statuses for undo
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false);
+  const [applicantToUndo, setApplicantToUndo] = useState<Applicant | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -190,7 +195,6 @@ export default function AllApplicantsPage() {
       setApplicants(response.data.data || []);
       setPagination(response.data.pagination || pagination);
     } catch (error) {
-      console.error('Error fetching applicants:', error);
       toast({
         title: "Error",
         description: "Failed to fetch applicants. Please try again.",
@@ -215,7 +219,7 @@ export default function AllApplicantsPage() {
 
       setJobs(response.data.data?.jobs || []);
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      // Error fetching jobs - silently fail
     }
   };
 
@@ -226,6 +230,13 @@ export default function AllApplicantsPage() {
   useEffect(() => {
     fetchApplicants();
   }, [pagination.page, statusFilter, jobFilter]);
+
+
+  // Helper to normalize ID for comparison
+  const normalizeId = (id: string | undefined): string => {
+    if (!id) return '';
+    return String(id).trim();
+  };
 
   // Filter applicants based on search
   const filteredApplicants = useMemo(() => {
@@ -239,10 +250,46 @@ export default function AllApplicantsPage() {
     });
   }, [applicants, search]);
 
+  // Get available status options based on current status
+  const getAvailableStatusOptions = (currentStatus: string) => {
+    const allStatuses = [
+      { value: 'pending', label: 'Pending' },
+      { value: 'shortlisted', label: 'Shortlisted' },
+      { value: 'interview_scheduled', label: 'Interview Scheduled' },
+      { value: 'hired', label: 'Hired' },
+      { value: 'rejected', label: 'Rejected' },
+    ];
+    
+    // Filter out current status
+    return allStatuses.filter(s => s.value !== currentStatus);
+  };
+
   // Update application status
-  const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
+  const updateApplicationStatus = async (applicationId: string, newStatus: string, previousStatus?: string) => {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+      
+      // Track previous status for undo BEFORE making the API call
+      // Use provided previousStatus, or get it from applicants array
+      let prevStatusToTrack: string | undefined = previousStatus;
+      if (!prevStatusToTrack) {
+        const currentApplicant = applicants.find(a => a._id === applicationId);
+        if (currentApplicant && currentApplicant.status !== newStatus) {
+          prevStatusToTrack = currentApplicant.status;
+        }
+      }
+      
+      // Always track the previous status if we have it and it's different from new status
+      if (prevStatusToTrack && prevStatusToTrack !== newStatus) {
+        const normalizedId = normalizeId(applicationId);
+        setStatusHistory(prev => {
+          const updated: Record<string, string> = {
+            ...prev,
+            [normalizedId]: prevStatusToTrack!
+          };
+          return updated;
+        });
+      }
       
       await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}/status`, {
         status: newStatus
@@ -257,14 +304,50 @@ export default function AllApplicantsPage() {
         description: `Application status updated to ${formatStatus(newStatus)}.`,
       });
       
-      fetchApplicants(); // Refresh the list
+      // Refresh the list but keep status history (statusHistory state persists)
+      fetchApplicants();
     } catch (error: any) {
-      console.error('Error updating status:', error);
+      // Remove from history if update failed using normalized ID
+      if (!previousStatus) {
+        const normalizedId = normalizeId(applicationId);
+        setStatusHistory(prev => {
+          const newHistory = { ...prev };
+          // Try to find and delete by normalized ID
+          const keyToDelete = Object.keys(newHistory).find(key => 
+            normalizeId(key) === normalizedId
+          );
+          if (keyToDelete) {
+            delete newHistory[keyToDelete];
+          }
+          return newHistory;
+        });
+      }
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to update application status.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Open undo dialog
+  const openUndoDialog = (applicant: Applicant) => {
+    setApplicantToUndo(applicant);
+    setUndoDialogOpen(true);
+  };
+
+  // Undo status change with selected status
+  const undoStatusChange = async (newStatus: string) => {
+    if (!applicantToUndo) return;
+    
+    try {
+      // Pass current status as previousStatus so it gets tracked for future undo
+      await updateApplicationStatus(applicantToUndo._id, newStatus, applicantToUndo.status);
+      // Don't remove from history - keep it so user can undo again if needed
+      setUndoDialogOpen(false);
+      setApplicantToUndo(null);
+    } catch (error) {
+      // Error handling is done in updateApplicationStatus
     }
   };
 
@@ -275,6 +358,13 @@ export default function AllApplicantsPage() {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const interviewDateTime = `${interviewDetails.date}T${interviewDetails.time}`;
+      
+      // Track previous status for undo using normalized ID
+      const normalizedId = normalizeId(selectedApplicant._id);
+      setStatusHistory(prev => ({
+        ...prev,
+        [normalizedId]: selectedApplicant.status
+      }));
       
       await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${selectedApplicant._id}/status`, {
         status: "interview_scheduled",
@@ -296,7 +386,6 @@ export default function AllApplicantsPage() {
       setInterviewDetails({ date: "", time: "", mode: "in-person", notes: "" });
       fetchApplicants();
     } catch (error) {
-      console.error('Error scheduling interview:', error);
       toast({
         title: "Error",
         description: "Failed to schedule interview.",
@@ -468,17 +557,31 @@ export default function AllApplicantsPage() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          size="sm"
-                          className="col-span-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md"
-                          onClick={() => router.push(`/employer/applicants/profile/${applicant._id}`)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View Profile
-                        </Button>
+                      <div className="space-y-2">
+                        {/* First Row: View Profile (50%) and Undo (50%) */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md"
+                            onClick={() => router.push(`/employer/applicants/profile/${applicant._id}`)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Profile
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-orange-600 border-orange-300 hover:bg-orange-50 shadow-md"
+                            onClick={() => openUndoDialog(applicant)}
+                          >
+                            <Undo2 className="w-4 h-4 mr-1" />
+                            Undo
+                          </Button>
+                        </div>
+                        
+                        {/* Second Row: Status-specific buttons */}
                         {applicant.status === 'pending' && (
-                          <>
+                          <div className="grid grid-cols-2 gap-2">
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md"
@@ -495,10 +598,10 @@ export default function AllApplicantsPage() {
                               <X className="w-4 h-4 mr-1" />
                               Reject
                             </Button>
-                          </>
+                          </div>
                         )}
                         {applicant.status === 'shortlisted' && (
-                          <>
+                          <div className="grid grid-cols-2 gap-2">
                             <Button
                               size="sm"
                               className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-md"
@@ -518,12 +621,12 @@ export default function AllApplicantsPage() {
                               <X className="w-4 h-4 mr-1" />
                               Reject
                             </Button>
-                          </>
+                          </div>
                         )}
                         {applicant.status === 'interview_scheduled' && (
                           <Button
                             size="sm"
-                            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white col-span-2 shadow-md"
+                            className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md"
                             onClick={() => updateApplicationStatus(applicant._id, 'hired')}
                           >
                             <Check className="w-4 h-4 mr-1" />
@@ -645,6 +748,59 @@ export default function AllApplicantsPage() {
             </Button>
             <Button onClick={scheduleInterview} className="gradient-bg text-white">
               Schedule Interview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Undo Status Change Dialog */}
+      <Dialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Application Status</DialogTitle>
+            <DialogDescription>
+              Select the status you want to set for {applicantToUndo?.applicantDetails?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Status: <span className="font-semibold">{formatStatus(applicantToUndo?.status || '')}</span></Label>
+              {(() => {
+                // Use normalized ID to find previous status
+                const normalizedId = applicantToUndo?._id ? normalizeId(applicantToUndo._id) : '';
+                const historyKey = Object.keys(statusHistory).find(key => 
+                  normalizeId(key) === normalizedId
+                );
+                const previousStatus = historyKey ? statusHistory[historyKey] : undefined;
+                return previousStatus ? (
+                  <Label>Previous Status: <span className="font-semibold text-orange-600">{formatStatus(previousStatus)}</span></Label>
+                ) : null;
+              })()}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="undo-status">Select New Status</Label>
+              <Select onValueChange={(value) => undoStatusChange(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions
+                    .filter(opt => opt.value !== 'all' && opt.value !== applicantToUndo?.status)
+                    .map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setUndoDialogOpen(false);
+              setApplicantToUndo(null);
+            }}>
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

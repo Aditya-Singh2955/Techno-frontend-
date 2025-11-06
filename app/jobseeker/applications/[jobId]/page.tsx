@@ -258,15 +258,73 @@ export default function ApplicationJobDetailPage({ params }: { params: Promise<{
     });
   };
 
-  const downloadDocument = (url: string, fileName: string) => {
-    if (url) {
-      window.open(url, '_blank');
-    } else {
+  const downloadDocument = async (url: string, fileName: string) => {
+    if (!url) {
       toast({
         title: "Download Error",
         description: `${fileName} is not available for download.`,
         variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+      
+      // Fetch the file as a blob
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`,
+        } : {},
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch document');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Get file extension from URL or default to pdf
+      const urlLower = url.toLowerCase();
+      let extension = 'pdf';
+      if (urlLower.includes('.doc')) extension = 'doc';
+      else if (urlLower.includes('.docx')) extension = 'docx';
+      else if (urlLower.includes('.txt')) extension = 'txt';
+      else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) extension = 'jpg';
+      else if (urlLower.includes('.png')) extension = 'png';
+      
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${fileName}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
+      toast({
+        title: "Download Started",
+        description: `${fileName} download has started.`,
+      });
+    } catch (error) {
+      // Fallback: try opening in new tab if download fails
+      try {
+        window.open(url, '_blank');
+        toast({
+          title: "Opening Document",
+          description: `${fileName} opened in a new tab.`,
+        });
+      } catch (fallbackError) {
+        toast({
+          title: "Download Error",
+          description: `Failed to download ${fileName}. Please try again.`,
+          variant: "destructive",
+        });
+      }
     }
   };
 

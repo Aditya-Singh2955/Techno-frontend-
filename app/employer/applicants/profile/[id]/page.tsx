@@ -152,6 +152,7 @@ export default function ApplicantProfilePage() {
     interviewNotes: ""
   });
   const [existingReview, setExistingReview] = useState<any>(null);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchApplicantData = async () => {
@@ -183,7 +184,6 @@ export default function ApplicantProfilePage() {
         await fetchEmployerReview();
         
       } catch (error) {
-        console.error('Error fetching applicant data:', error);
         toast({
           title: "Error",
           description: "Failed to fetch applicant profile. Please try again.",
@@ -222,7 +222,6 @@ export default function ApplicantProfilePage() {
       }
     } catch (error) {
       // Review doesn't exist yet, which is fine
-      console.log('No existing review found');
     }
   };
 
@@ -257,7 +256,6 @@ export default function ApplicantProfilePage() {
       setApplicantData(prev => prev ? {...prev, status: newStatus} : null);
       
     } catch (error) {
-      console.error('Error updating status:', error);
       toast({
         title: "Error",
         description: "Failed to update application status.",
@@ -297,7 +295,6 @@ export default function ApplicantProfilePage() {
       setApplicantData(prev => prev ? {...prev, status: "interview_scheduled"} : null);
       
     } catch (error) {
-      console.error('Error scheduling interview:', error);
       toast({
         title: "Error",
         description: "Failed to schedule interview.",
@@ -338,12 +335,85 @@ export default function ApplicantProfilePage() {
       await fetchEmployerReview();
       
     } catch (error) {
-      console.error('Error saving review:', error);
       toast({
         title: "Error",
         description: "Failed to save review. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Download CV
+  const downloadCV = async () => {
+    if (!applicantData) return;
+
+    const candidate = applicantData.applicantDetails;
+    const resumeUrl = candidate.resumeDocument || applicantData.resume;
+
+    if (!resumeUrl) {
+      toast({
+        title: "CV Not Available",
+        description: "This candidate has not uploaded a CV/resume.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+      
+      // Fetch the file as a blob
+      const response = await fetch(resumeUrl, {
+        method: 'GET',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`,
+        } : {},
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch CV');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // Get file extension from URL or default to pdf
+      const urlLower = resumeUrl.toLowerCase();
+      let extension = 'pdf';
+      if (urlLower.includes('.doc')) extension = 'doc';
+      else if (urlLower.includes('.docx')) extension = 'docx';
+      else if (urlLower.includes('.txt')) extension = 'txt';
+      
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${candidate.name || candidate.fullName || 'Candidate'}_CV.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Started",
+        description: "CV download has started.",
+      });
+    } catch (error) {
+      // Fallback: try opening in new tab if download fails
+      try {
+        window.open(resumeUrl, '_blank');
+        toast({
+          title: "Opening CV",
+          description: "CV opened in a new tab.",
+        });
+      } catch (fallbackError) {
+        toast({
+          title: "Download Error",
+          description: "Failed to download CV. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -430,11 +500,19 @@ export default function ApplicantProfilePage() {
               Back to Applicants
             </Link>
             <div className="flex gap-3">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setContactDialogOpen(true)}
+              >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Contact
               </Button>
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={downloadCV}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download CV
               </Button>
@@ -745,7 +823,73 @@ export default function ApplicantProfilePage() {
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => window.open(candidate.resumeDocument, '_blank')}
+                    onClick={async () => {
+                      if (!candidate.resumeDocument) {
+                        toast({
+                          title: "Resume Not Available",
+                          description: "No resume available for download.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      try {
+                        const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+                        
+                        // Fetch the file as a blob
+                        const response = await fetch(candidate.resumeDocument, {
+                          method: 'GET',
+                          headers: token ? {
+                            'Authorization': `Bearer ${token}`,
+                          } : {},
+                        });
+
+                        if (!response.ok) {
+                          throw new Error('Failed to fetch resume');
+                        }
+
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        
+                        // Get file extension from URL or default to pdf
+                        const urlLower = candidate.resumeDocument.toLowerCase();
+                        let extension = 'pdf';
+                        if (urlLower.includes('.doc')) extension = 'doc';
+                        else if (urlLower.includes('.docx')) extension = 'docx';
+                        else if (urlLower.includes('.txt')) extension = 'txt';
+                        
+                        // Create a temporary anchor element to trigger download
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `${candidate.name || candidate.fullName || 'Candidate'}_Primary_Resume.${extension}`;
+                        document.body.appendChild(link);
+                        link.click();
+                        
+                        // Clean up
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+
+                        toast({
+                          title: "Download Started",
+                          description: "Primary resume download has started.",
+                        });
+                      } catch (error) {
+                        // Fallback: try opening in new tab if download fails
+                        try {
+                          window.open(candidate.resumeDocument, '_blank');
+                          toast({
+                            title: "Opening Resume",
+                            description: "Resume opened in a new tab.",
+                          });
+                        } catch (fallbackError) {
+                          toast({
+                            title: "Download Error",
+                            description: "Failed to download resume. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download
@@ -776,7 +920,75 @@ export default function ApplicantProfilePage() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => window.open(docUrl, '_blank')}
+                        onClick={async () => {
+                          if (!docUrl) {
+                            toast({
+                              title: "Document Not Available",
+                              description: "No document available for download.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          try {
+                            const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+                            
+                            // Fetch the file as a blob
+                            const response = await fetch(docUrl, {
+                              method: 'GET',
+                              headers: token ? {
+                                'Authorization': `Bearer ${token}`,
+                              } : {},
+                            });
+
+                            if (!response.ok) {
+                              throw new Error('Failed to fetch document');
+                            }
+
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            
+                            // Get file extension from URL or default to pdf
+                            const urlLower = docUrl.toLowerCase();
+                            let extension = 'pdf';
+                            if (urlLower.includes('.doc')) extension = 'doc';
+                            else if (urlLower.includes('.docx')) extension = 'docx';
+                            else if (urlLower.includes('.txt')) extension = 'txt';
+                            else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) extension = 'jpg';
+                            else if (urlLower.includes('.png')) extension = 'png';
+                            
+                            // Create a temporary anchor element to trigger download
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `${candidate.name || candidate.fullName || 'Candidate'}_Document_${index + 1}.${extension}`;
+                            document.body.appendChild(link);
+                            link.click();
+                            
+                            // Clean up
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+
+                            toast({
+                              title: "Download Started",
+                              description: `Document ${index + 1} download has started.`,
+                            });
+                          } catch (error) {
+                            // Fallback: try opening in new tab if download fails
+                            try {
+                              window.open(docUrl, '_blank');
+                              toast({
+                                title: "Opening Document",
+                                description: `Document ${index + 1} opened in a new tab.`,
+                              });
+                            } catch (fallbackError) {
+                              toast({
+                                title: "Download Error",
+                                description: `Failed to download document ${index + 1}. Please try again.`,
+                                variant: "destructive",
+                              });
+                            }
+                          }
+                        }}
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
@@ -1078,6 +1290,184 @@ export default function ApplicantProfilePage() {
               disabled={employerReview.rating === 0}
             >
               {existingReview ? 'Update Review' : 'Save Review'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Contact Information</DialogTitle>
+            <DialogDescription>
+              Contact details for {applicantData?.applicantDetails?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {applicantData?.applicantDetails?.email && (
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Mail className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500">Email</Label>
+                  <div className="text-sm font-medium text-gray-900 break-all">
+                    {applicantData.applicantDetails.email}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    window.location.href = `mailto:${applicantData.applicantDetails.email}`;
+                  }}
+                >
+                  Send Email
+                </Button>
+              </div>
+            )}
+
+            {applicantData?.applicantDetails?.phoneNumber && applicantData.applicantDetails.phoneNumber.trim() !== "" && (
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Phone className="w-5 h-5 text-green-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500">Phone Number</Label>
+                  <div className="text-sm font-medium text-gray-900">
+                    {applicantData.applicantDetails.phoneNumber}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    window.location.href = `tel:${applicantData.applicantDetails.phoneNumber}`;
+                  }}
+                >
+                  Call
+                </Button>
+              </div>
+            )}
+
+            {applicantData?.applicantDetails?.location && applicantData.applicantDetails.location.trim() !== "" && (
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <MapPin className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500">Location</Label>
+                  <div className="text-sm font-medium text-gray-900">
+                    {applicantData.applicantDetails.location}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {applicantData?.applicantDetails?.nationality && applicantData.applicantDetails.nationality.trim() !== "" && (
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <User className="w-5 h-5 text-purple-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500">Nationality</Label>
+                  <div className="text-sm font-medium text-gray-900">
+                    {applicantData.applicantDetails.nationality}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {applicantData?.applicantDetails?.dateOfBirth && (
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Calendar className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <Label className="text-xs text-gray-500">Date of Birth</Label>
+                  <div className="text-sm font-medium text-gray-900">
+                    {new Date(applicantData.applicantDetails.dateOfBirth).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Social Links */}
+            {applicantData?.applicantDetails?.socialLinks && (
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500">Social Links</Label>
+                <div className="space-y-2">
+                  {applicantData.applicantDetails.socialLinks.linkedIn && (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Building className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">LinkedIn</div>
+                        <div className="text-xs text-gray-600 break-all">
+                          {applicantData.applicantDetails.socialLinks.linkedIn}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          window.open(applicantData.applicantDetails.socialLinks.linkedIn, '_blank');
+                        }}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  )}
+
+                  {applicantData.applicantDetails.socialLinks.instagram && (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Building className="w-5 h-5 text-pink-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">Instagram</div>
+                        <div className="text-xs text-gray-600 break-all">
+                          {applicantData.applicantDetails.socialLinks.instagram}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          window.open(applicantData.applicantDetails.socialLinks.instagram, '_blank');
+                        }}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  )}
+
+                  {applicantData.applicantDetails.socialLinks.twitterX && (
+                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <Building className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">Twitter/X</div>
+                        <div className="text-xs text-gray-600 break-all">
+                          {applicantData.applicantDetails.socialLinks.twitterX}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          window.open(applicantData.applicantDetails.socialLinks.twitterX, '_blank');
+                        }}
+                      >
+                        Open
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(!applicantData?.applicantDetails?.email && 
+              (!applicantData?.applicantDetails?.phoneNumber || applicantData.applicantDetails.phoneNumber.trim() === "")) && (
+              <div className="text-center py-4 text-gray-500">
+                No contact information available
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContactDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -80,8 +80,10 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
   const [job, setJob] = useState<Job | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isViewMode, setIsViewMode] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Handle async params and fetch job data
   useEffect(() => {
@@ -109,6 +111,206 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
     
     getJobDetails()
   }, [params])
+
+  // Handle view mode - fetch application data if viewing
+  useEffect(() => {
+    const viewParam = searchParams?.get('view')
+    const applicationId = searchParams?.get('applicationId')
+    
+    if (viewParam === 'true' && applicationId) {
+      setIsViewMode(true)
+      const fetchApplicationData = async () => {
+        try {
+          const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
+          const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (response.data && response.data.data) {
+            const appData = response.data.data
+            const applicant = appData.applicantDetails || appData.applicantId
+            
+            // Extract nationality - check multiple possible paths
+            const nationalityValue = (applicant?.nationality || appData.nationality || "").toString().trim()
+            
+            // Map nationality to match Select options (case-insensitive)
+            const nationalityMap: Record<string, string> = {
+              'uae': 'UAE',
+              'united arab emirates': 'UAE',
+              'india': 'India',
+              'pakistan': 'Pakistan',
+              'philippines': 'Philippines',
+              'egypt': 'Egypt',
+              'jordan': 'Jordan',
+              'lebanon': 'Lebanon',
+              'syria': 'Syria',
+            }
+            const nationalityLower = nationalityValue?.toLowerCase().trim() || ""
+            let mappedNationality = nationalityMap[nationalityLower] || ""
+            // If not found in map but value exists, check if it's already a valid option
+            if (!mappedNationality && nationalityValue) {
+              const validOptions = ['UAE', 'India', 'Pakistan', 'Philippines', 'Egypt', 'Jordan', 'Lebanon', 'Syria', 'Other']
+              mappedNationality = validOptions.includes(nationalityValue) ? nationalityValue : 'Other'
+            }
+            
+            // Extract education - check multiple possible paths and formats
+            const educationValue = (applicant?.education?.[0]?.highestDegree || 
+                                  applicant?.education?.[0]?.degree || 
+                                  applicant?.education?.[0]?.qualification ||
+                                  "").toString().trim()
+            
+            // Map education to match Select options (case-insensitive)
+            const educationMap: Record<string, string> = {
+              'high school': 'High School',
+              'diploma': 'Diploma',
+              "bachelor's": "Bachelor's",
+              "bachelor's degree": "Bachelor's",
+              'bachelor': "Bachelor's",
+              'bachelors': "Bachelor's",
+              'b.tech': "Bachelor's",
+              'b.tech.': "Bachelor's",
+              'btech': "Bachelor's",
+              'b.e.': "Bachelor's",
+              'b.e': "Bachelor's",
+              'be': "Bachelor's",
+              'b.sc': "Bachelor's",
+              'b.sc.': "Bachelor's",
+              'bsc': "Bachelor's",
+              'b.com': "Bachelor's",
+              'b.com.': "Bachelor's",
+              'bcom': "Bachelor's",
+              'b.a.': "Bachelor's",
+              'b.a': "Bachelor's",
+              'ba': "Bachelor's",
+              'b.s.': "Bachelor's",
+              'b.s': "Bachelor's",
+              'bs': "Bachelor's",
+              'bachelor of technology': "Bachelor's",
+              'bachelor of tech': "Bachelor's",
+              'bachelor in technology': "Bachelor's",
+              'bachelor in tech': "Bachelor's",
+              'bachelor of engineering': "Bachelor's",
+              'bachelor of science': "Bachelor's",
+              'bachelor of commerce': "Bachelor's",
+              'bachelor of arts': "Bachelor's",
+              'btech': "Bachelor's",
+              'b.tech': "Bachelor's",
+              'b.tech.': "Bachelor's",
+              "master's": "Master's",
+              "master's degree": "Master's",
+              'master': "Master's",
+              'masters': "Master's",
+              'm.tech': "Master's",
+              'm.tech.': "Master's",
+              'mtech': "Master's",
+              'm.e.': "Master's",
+              'm.e': "Master's",
+              'me': "Master's",
+              'm.sc': "Master's",
+              'm.sc.': "Master's",
+              'msc': "Master's",
+              'm.com': "Master's",
+              'm.com.': "Master's",
+              'mcom': "Master's",
+              'm.a.': "Master's",
+              'm.a': "Master's",
+              'ma': "Master's",
+              'm.s.': "Master's",
+              'm.s': "Master's",
+              'ms': "Master's",
+              'master of technology': "Master's",
+              'master of engineering': "Master's",
+              'master of science': "Master's",
+              'phd': 'PhD',
+              'ph.d': 'PhD',
+              'ph.d.': 'PhD',
+              'doctorate': 'PhD',
+            }
+            const educationLower = educationValue?.toLowerCase().trim() || ""
+            let mappedEducation = educationMap[educationLower] || ""
+            
+            // If not found by exact match, try partial matching
+            if (!mappedEducation && educationValue) {
+              const educationLowerForMatch = educationLower
+              // Check for bachelor's degree variations
+              if (educationLowerForMatch.includes('bachelor') || 
+                  educationLowerForMatch.includes('b.tech') || 
+                  educationLowerForMatch.includes('btech') ||
+                  educationLowerForMatch.includes('b.e') ||
+                  educationLowerForMatch.includes('be') ||
+                  educationLowerForMatch.includes('b.sc') ||
+                  educationLowerForMatch.includes('bsc') ||
+                  educationLowerForMatch.includes('b.com') ||
+                  educationLowerForMatch.includes('bcom') ||
+                  educationLowerForMatch.includes('b.a') ||
+                  educationLowerForMatch.includes('ba') ||
+                  (educationLowerForMatch.includes('technology') && educationLowerForMatch.includes('bachelor'))) {
+                mappedEducation = "Bachelor's"
+              }
+              // Check for master's degree variations
+              else if (educationLowerForMatch.includes('master') || 
+                       educationLowerForMatch.includes('m.tech') || 
+                       educationLowerForMatch.includes('mtech') ||
+                       educationLowerForMatch.includes('m.e') ||
+                       educationLowerForMatch.includes('me') ||
+                       educationLowerForMatch.includes('m.sc') ||
+                       educationLowerForMatch.includes('msc')) {
+                mappedEducation = "Master's"
+              }
+              // Check for PhD variations
+              else if (educationLowerForMatch.includes('phd') || 
+                       educationLowerForMatch.includes('ph.d') ||
+                       educationLowerForMatch.includes('doctorate')) {
+                mappedEducation = "PhD"
+              }
+              // Check if it's already a valid option
+              else {
+                const validOptions = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Other']
+                mappedEducation = validOptions.includes(educationValue) ? educationValue : educationValue
+              }
+            }
+            
+            console.log('Application data mapping:', {
+              rawNationality: nationalityValue,
+              mappedNationality,
+              rawEducation: educationValue,
+              mappedEducation,
+              applicantData: applicant,
+              fullAppData: appData
+            })
+            
+            // Pre-fill form with application data
+            setFormData({
+              friendName: applicant?.fullName || applicant?.name || "",
+              email: applicant?.email || "",
+              phone: applicant?.phoneNumber || "",
+              dateOfBirth: applicant?.dateOfBirth ? new Date(applicant.dateOfBirth).toISOString().split('T')[0] : "",
+              nationality: mappedNationality,
+              currentCompany: applicant?.professionalExperience?.[0]?.company || "",
+              expectedSalary: appData.expectedSalary?.min ? appData.expectedSalary.min.toString() : (typeof appData.expectedSalary === 'string' ? appData.expectedSalary : ""),
+              location: applicant?.location || "",
+              education: mappedEducation,
+              skills: applicant?.skills?.join(', ') || "",
+              certifications: applicant?.certifications?.join(', ') || "",
+              cvFile: null,
+              resumeUrl: applicant?.resumeDocument || appData.resume || "",
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching application data:', error)
+          toast({
+            title: "Error",
+            description: "Failed to load referral details",
+            variant: "destructive"
+          })
+        }
+      }
+      fetchApplicationData()
+    }
+  }, [searchParams, toast])
 
   if (loading) {
     return (
@@ -337,7 +539,9 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-blue-900 mb-2">Refer a Friend for: {job.title}</h1>
+                  <h1 className="text-2xl font-bold text-blue-900 mb-2">
+                    {isViewMode ? "View Referral Details" : "Refer a Friend for: "}{!isViewMode && job.title}
+                  </h1>
                   <p className="text-blue-700">{job.companyName} • {job.location}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="bg-blue-100 text-blue-800 border-blue-200">
@@ -380,6 +584,8 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                       onChange={(e) => handleInputChange('friendName', e.target.value)}
                       placeholder="Enter friend's full name"
                       required
+                      disabled={isViewMode}
+                      className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -392,8 +598,9 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         placeholder="friend@example.com"
-                        className="pl-10"
+                        className={`pl-10 ${isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         required
+                        disabled={isViewMode}
                       />
                     </div>
                   </div>
@@ -408,10 +615,15 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                         id="phone"
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        onChange={(e) => {
+                          // Only allow numbers and + character
+                          const value = e.target.value.replace(/[^0-9+]/g, '')
+                          handleInputChange('phone', value)
+                        }}
                         placeholder="+971 50 123 4567"
-                        className="pl-10"
+                        className={`pl-10 ${isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         required
+                        disabled={isViewMode}
                       />
                     </div>
                   </div>
@@ -424,8 +636,9 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                         value={formData.location}
                         onChange={(e) => handleInputChange('location', e.target.value)}
                         placeholder="Dubai, UAE"
-                        className="pl-10"
+                        className={`pl-10 ${isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         required
+                        disabled={isViewMode}
                       />
                     </div>
                   </div>
@@ -441,15 +654,16 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                         type="date"
                         value={formData.dateOfBirth}
                         onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                        className="pl-10"
+                        className={`pl-10 ${isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         required
+                        disabled={isViewMode}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nationality">Nationality *</Label>
-                    <Select value={formData.nationality} onValueChange={(value) => handleInputChange('nationality', value)}>
-                      <SelectTrigger>
+                    <Select value={formData.nationality} onValueChange={(value) => handleInputChange('nationality', value)} disabled={isViewMode}>
+                      <SelectTrigger className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}>
                         <SelectValue placeholder="Select nationality" />
                       </SelectTrigger>
                       <SelectContent>
@@ -488,6 +702,8 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                       onChange={(e) => handleInputChange('currentCompany', e.target.value)}
                       placeholder="Where is your friend currently working?"
                       required
+                      disabled={isViewMode}
+                      className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -499,6 +715,8 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                       onChange={(e) => handleInputChange('expectedSalary', e.target.value)}
                       placeholder="15000"
                       required
+                      disabled={isViewMode}
+                      className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}
                     />
                   </div>
                 </div>
@@ -517,8 +735,8 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="education">Highest Education Qualification</Label>
-                  <Select value={formData.education} onValueChange={(value) => handleInputChange('education', value)}>
-                    <SelectTrigger>
+                  <Select value={formData.education} onValueChange={(value) => handleInputChange('education', value)} disabled={isViewMode}>
+                    <SelectTrigger className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}>
                       <SelectValue placeholder="Select highest qualification" />
                     </SelectTrigger>
                     <SelectContent>
@@ -553,6 +771,8 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                     placeholder="List your friend's key skills (comma-separated)"
                     rows={3}
                     required
+                    disabled={isViewMode}
+                    className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -563,6 +783,8 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                     onChange={(e) => handleInputChange('certifications', e.target.value)}
                     placeholder="List your friend's certifications and licenses (optional)"
                     rows={3}
+                    disabled={isViewMode}
+                    className={isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}
                   />
                 </div>
               </CardContent>
@@ -578,58 +800,168 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                 <CardDescription>Upload your friend's resume and other relevant documents</CardDescription>
               </CardHeader>
               <CardContent>
-                <FileUpload
-                  onUploadSuccess={(fileData) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      resumeUrl: fileData.secure_url || fileData.url
-                    }));
-                    toast({
-                      title: "Resume Uploaded",
-                      description: "Your friend's resume has been uploaded successfully.",
-                    });
-                  }}
-                  onUploadError={(error) => {
-                    console.error("Resume upload error:", error);
-                    toast({
-                      title: "Upload Failed",
-                      description: error,
-                      variant: "destructive",
-                    });
-                  }}
-                  accept=".pdf,.doc,.docx"
-                  maxSize={5}
-                  allowedTypes={['document']}
-                  placeholder="Upload Your Friend's Resume"
-                  currentFile={formData.resumeUrl ? "Resume uploaded" : null}
-                />
+                {isViewMode ? (
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    {formData.resumeUrl ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-gray-700">Resume: {formData.resumeUrl.split('/').pop() || 'Uploaded'}</span>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(formData.resumeUrl, '_blank')}
+                          >
+                            View Resume
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (!formData.resumeUrl) {
+                                toast({
+                                  title: "Resume Not Available",
+                                  description: "No resume uploaded.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
+                              try {
+                                const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+                                
+                                // Fetch the file as a blob
+                                const response = await fetch(formData.resumeUrl, {
+                                  method: 'GET',
+                                  headers: token ? {
+                                    'Authorization': `Bearer ${token}`,
+                                  } : {},
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error('Failed to fetch resume');
+                                }
+
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                
+                                // Get file extension from URL or default to pdf
+                                const urlLower = formData.resumeUrl.toLowerCase();
+                                let extension = 'pdf';
+                                if (urlLower.includes('.doc')) extension = 'doc';
+                                else if (urlLower.includes('.docx')) extension = 'docx';
+                                else if (urlLower.includes('.txt')) extension = 'txt';
+                                
+                                // Create a temporary anchor element to trigger download
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = `${formData.friendName || 'Resume'}_CV.${extension}`;
+                                document.body.appendChild(link);
+                                link.click();
+                                
+                                // Clean up
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+
+                                toast({
+                                  title: "Download Started",
+                                  description: "Resume download has started.",
+                                });
+                              } catch (error) {
+                                // Fallback: try opening in new tab if download fails
+                                try {
+                                  window.open(formData.resumeUrl, '_blank');
+                                  toast({
+                                    title: "Opening Resume",
+                                    description: "Resume opened in a new tab.",
+                                  });
+                                } catch (fallbackError) {
+                                  toast({
+                                    title: "Download Error",
+                                    description: "Failed to download resume. Please try again.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }
+                            }}
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500">No resume uploaded</span>
+                    )}
+                  </div>
+                ) : (
+                  <FileUpload
+                    onUploadSuccess={(fileData) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        resumeUrl: fileData.secure_url || fileData.url
+                      }));
+                      toast({
+                        title: "Resume Uploaded",
+                        description: "Your friend's resume has been uploaded successfully.",
+                      });
+                    }}
+                    onUploadError={(error) => {
+                      console.error("Resume upload error:", error);
+                      toast({
+                        title: "Upload Failed",
+                        description: error,
+                        variant: "destructive",
+                      });
+                    }}
+                    accept=".pdf,.doc,.docx"
+                    maxSize={5}
+                    allowedTypes={['document']}
+                    placeholder="Upload Your Friend's Resume"
+                    currentFile={formData.resumeUrl ? "Resume uploaded" : null}
+                  />
+                )}
               </CardContent>
             </Card>
 
             {/* Submit Buttons */}
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="submit"
-                className="gradient-bg text-white flex-1"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Submit Referral"
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push(`/jobseeker/search/${jobId}`)}
-              >
-                Cancel
-              </Button>
-            </div>
+            {!isViewMode && (
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="submit"
+                  className="gradient-bg text-white flex-1"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Submit Referral"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(`/jobseeker/search/${jobId}`)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+            {isViewMode && (
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/jobseeker/referrals/history')}
+                  className="flex-1"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Referral History
+                </Button>
+              </div>
+            )}
           </form>
         </div>
       </main>

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 import type { CandidateProfile } from "@/lib/applications";
 
 function getStatusColor(status: string): string {
@@ -55,6 +56,77 @@ function getTierColor(tier: string): string {
 
 export function CandidateProfileView({ candidate }: { candidate: CandidateProfile }) {
   const router = useRouter();
+  const { toast } = useToast();
+
+  const downloadDocument = async (url: string | undefined, fileName: string) => {
+    if (!url) {
+      toast({
+        title: "Download Error",
+        description: `${fileName} is not available for download.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+      
+      // Fetch the file as a blob
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`,
+        } : {},
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch document');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      // Get file extension from URL or default to pdf
+      const urlLower = url.toLowerCase();
+      let extension = 'pdf';
+      if (urlLower.includes('.doc')) extension = 'doc';
+      else if (urlLower.includes('.docx')) extension = 'docx';
+      else if (urlLower.includes('.txt')) extension = 'txt';
+      else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) extension = 'jpg';
+      else if (urlLower.includes('.png')) extension = 'png';
+      
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${fileName}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
+      toast({
+        title: "Download Started",
+        description: `${fileName} download has started.`,
+      });
+    } catch (error) {
+      // Fallback: try opening in new tab if download fails
+      try {
+        window.open(url, '_blank');
+        toast({
+          title: "Opening Document",
+          description: `${fileName} opened in a new tab.`,
+        });
+      } catch (fallbackError) {
+        toast({
+          title: "Download Error",
+          description: `Failed to download ${fileName}. Please try again.`,
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -286,7 +358,11 @@ export function CandidateProfileView({ candidate }: { candidate: CandidateProfil
                     <FileText className="w-4 h-4 mr-3 text-blue-600" />
                     <span className="font-medium">{candidate.resumeFilename}</span>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => downloadDocument((candidate as any).resumeUrl || (candidate as any).resumeDocument, candidate.resumeFilename)}
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </Button>
@@ -296,7 +372,11 @@ export function CandidateProfileView({ candidate }: { candidate: CandidateProfil
                     <FileText className="w-4 h-4 mr-3 text-green-600" />
                     <span className="font-medium">{candidate.coverLetter}</span>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => downloadDocument((candidate as any).coverLetterUrl, candidate.coverLetter)}
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Download
                   </Button>
@@ -307,7 +387,11 @@ export function CandidateProfileView({ candidate }: { candidate: CandidateProfil
                       <FileText className="w-4 h-4 mr-3 text-purple-600" />
                       <span className="font-medium">{doc}</span>
                     </div>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => downloadDocument((candidate as any).documentsUrls?.[index], doc)}
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Download
                     </Button>
