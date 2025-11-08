@@ -1477,8 +1477,38 @@ export default function EmployerProfilePage() {
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       id="phone"
+                      type="tel"
                       value={profileData.companyInfo.phone}
-                      onChange={(e) => handleInputChange("companyInfo", "phone", e.target.value)}
+                      onChange={(e) => {
+                        // Allow only + and numbers
+                        const value = e.target.value.replace(/[^+0-9]/g, '')
+                        handleInputChange("companyInfo", "phone", value)
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevent typing if it's not a number, +, or allowed keys (backspace, delete, arrow keys, etc.)
+                        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End']
+                        const isNumber = e.key >= '0' && e.key <= '9'
+                        const isPlus = e.key === '+'
+                        const isAllowedKey = allowedKeys.includes(e.key)
+                        const isCtrlCmd = e.ctrlKey || e.metaKey
+                        
+                        // Allow Ctrl/Cmd + A, C, V, X for select all, copy, paste, cut
+                        if (isCtrlCmd && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                          return
+                        }
+                        
+                        // Block if it's not a number, plus, or allowed key
+                        if (!isNumber && !isPlus && !isAllowedKey) {
+                          e.preventDefault()
+                        }
+                      }}
+                      onPaste={(e) => {
+                        // Clean pasted content to only allow + and numbers
+                        e.preventDefault()
+                        const pastedText = e.clipboardData.getData('text')
+                        const cleanedText = pastedText.replace(/[^+0-9]/g, '')
+                        handleInputChange("companyInfo", "phone", cleanedText)
+                      }}
                       className="pl-10"
                     />
                   </div>
@@ -1605,7 +1635,36 @@ export default function EmployerProfilePage() {
                       id="contactPhone"
                       type="tel"
                       value={profileData.contactPerson.phone}
-                      onChange={(e) => handleInputChange("contactPerson", "phone", e.target.value)}
+                      onChange={(e) => {
+                        // Allow only + and numbers
+                        const value = e.target.value.replace(/[^+0-9]/g, '')
+                        handleInputChange("contactPerson", "phone", value)
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevent typing if it's not a number, +, or allowed keys (backspace, delete, arrow keys, etc.)
+                        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End']
+                        const isNumber = e.key >= '0' && e.key <= '9'
+                        const isPlus = e.key === '+'
+                        const isAllowedKey = allowedKeys.includes(e.key)
+                        const isCtrlCmd = e.ctrlKey || e.metaKey
+                        
+                        // Allow Ctrl/Cmd + A, C, V, X for select all, copy, paste, cut
+                        if (isCtrlCmd && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
+                          return
+                        }
+                        
+                        // Block if it's not a number, plus, or allowed key
+                        if (!isNumber && !isPlus && !isAllowedKey) {
+                          e.preventDefault()
+                        }
+                      }}
+                      onPaste={(e) => {
+                        // Clean pasted content to only allow + and numbers
+                        e.preventDefault()
+                        const pastedText = e.clipboardData.getData('text')
+                        const cleanedText = pastedText.replace(/[^+0-9]/g, '')
+                        handleInputChange("contactPerson", "phone", cleanedText)
+                      }}
                       placeholder="e.g., +971 55 123 4567"
                       className="pl-10"
                     />

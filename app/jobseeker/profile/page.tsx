@@ -485,22 +485,18 @@ export default function JobSeekerProfilePage() {
       const percentage = Math.round((completed / totalFields) * 100)
       setProfileCompletion(percentage)
 
-      // If server provided authoritative points, prefer that display
+      // Always calculate points in real-time based on current profile data
+      // This ensures points update immediately as user fills in fields
+      const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
+      const applicationPoints = profileData?.rewards?.applyForJobs || 0; // Points from job applications
+      const rmServicePoints = profileData?.rewards?.rmService || 0; // Points from RM service purchase
+      const socialMediaBonus = profileData?.rewards?.socialMediaBonus || 0; // Bonus points from following social media
       const dp = profileData.deductedPoints || 0
-      if (serverPoints !== null) {
-        setPoints(Math.max(0, serverPoints - dp))
-      } else {
-        // Calculate points based on completion (same logic as backend)
-        const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
-        const applicationPoints = profileData?.rewards?.applyForJobs || 0; // Points from job applications
-        const rmServicePoints = profileData?.rewards?.rmService || 0; // Points from RM service purchase
-        const socialMediaBonus = profileData?.rewards?.socialMediaBonus || 0; // Bonus points from following social media
-        const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus
-        const availablePoints = Math.max(0, totalPoints - dp)
-        setPoints(availablePoints)
-      }
+      const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus
+      const availablePoints = Math.max(0, totalPoints - dp)
+      setPoints(availablePoints)
 
-      // Determine tier
+      // Determine tier (use calculated availablePoints for accurate tier calculation)
       let yearsExp = 0;
       const expStr = profileData.experience.experience;
       if (expStr === "0-1") yearsExp = 1;
@@ -510,7 +506,7 @@ export default function JobSeekerProfilePage() {
       else if (expStr === "10+") yearsExp = 11;
       const isEmirati = profileData.personalInfo.nationality?.toLowerCase().includes("emirati");
       const hasEmiratesId = !!profileData.personalInfo.emiratesId;
-      if (points >= 500) setTier("Platinum");
+      if (availablePoints >= 500) setTier("Platinum");
       else if (isEmirati || yearsExp >= 10) setTier("Gold");
       else if (yearsExp >= 5 && hasEmiratesId) setTier("Silver");
       else if (yearsExp <= 4) setTier("Blue");

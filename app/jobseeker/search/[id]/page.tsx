@@ -119,11 +119,40 @@ export default function JobDetailsPage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  const checkIfApplied = () => {
-    // Check if user has already applied to this job
-    const appliedJobs = localStorage.getItem('appliedJobs');
-    if (appliedJobs) {
-      setHasApplied(JSON.parse(appliedJobs).includes(id));
+  const checkIfApplied = async () => {
+    // Check if user has already applied to this job (excluding withdrawn applications)
+    const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+    
+    if (!token) {
+      // Fallback to localStorage check if no token
+      const appliedJobs = localStorage.getItem('appliedJobs');
+      if (appliedJobs) {
+        setHasApplied(JSON.parse(appliedJobs).includes(id));
+      }
+      return;
+    }
+
+    try {
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      // Check if there's an active (non-withdrawn) application for this job
+      const hasActiveApplication = response.data.data.some((app: any) => {
+        const jobId = app.jobId?._id || app.jobId;
+        return jobId === id && app.status !== 'withdrawn';
+      });
+
+      setHasApplied(hasActiveApplication);
+    } catch (error) {
+      console.log('Could not fetch user applications:', error);
+      // Fallback to localStorage check
+      const appliedJobs = localStorage.getItem('appliedJobs');
+      if (appliedJobs) {
+        setHasApplied(JSON.parse(appliedJobs).includes(id));
+      }
     }
   };
 
