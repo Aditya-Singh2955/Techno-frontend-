@@ -530,11 +530,13 @@ export default function JobSearchPage() {
         )}
 
         {/* Load More */}
-        <div className="text-center mt-8">
-          <Button variant="outline" size="lg" onClick={fetchJobs}>
-            Load More Jobs
-          </Button>
-        </div>
+        {jobs.length > 4 && (
+          <div className="text-center mt-8">
+            <Button variant="outline" size="lg" onClick={fetchJobs}>
+              Load More Jobs
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Profile Completion Dialog */}

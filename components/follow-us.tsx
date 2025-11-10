@@ -127,14 +127,14 @@ export function FollowUs({ onPointsEarned }: FollowUsProps) {
     {
       name: "LinkedIn",
       icon: Linkedin,
-      url: "https://www.linkedin.com/company/findr-jobs",
+      url: "https://www.linkedin.com/company/102722338/admin/dashboard/",
       color: "text-blue-600 hover:text-blue-700",
       bgColor: "hover:bg-blue-50"
     },
     {
       name: "Instagram", 
       icon: Instagram,
-      url: "https://www.instagram.com/findr.jobs",
+      url: "https://www.instagram.com/findrdubai?igsh=bTY0bzJvcWFja3Nz",
       color: "text-pink-600 hover:text-pink-700",
       bgColor: "hover:bg-pink-50"
     }

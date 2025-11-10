@@ -356,7 +356,14 @@ export default function EmployerRewardsPage() {
                     <tier.icon className={`w-10 h-10 mx-auto mb-3 ${tier.color}`} />
                     <h3 className="text-xl font-bold mb-1">{tier.name}</h3>
                     <Badge className="mb-2 gradient-bg text-white">{tier.label}</Badge>
-                    <p className="text-xs text-gray-600 mb-2">Employees: {tier.employees}</p>
+                    {!tier.pointsRequired && (
+                      <p className="text-xs text-gray-600 mb-2">Employees: {tier.employees}</p>
+                    )}
+                    {tier.pointsRequired && (
+                      <p className="text-xs font-semibold text-emerald-700 mb-2">
+                        Requires: {tier.minPoints}+ points
+                      </p>
+                    )}
                     <ul className="text-xs text-gray-700 mb-2 space-y-1 text-left">
                       {(tier.perks || []).map((perk: string, i: number) => (
                         <li key={i} className="flex items-center gap-2">

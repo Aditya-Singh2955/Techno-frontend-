@@ -119,16 +119,37 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        params: {
-          limit: 3 // Get top 3 recommendations for dashboard
-        }
-      });
+      // Fetch both recommendations and applications in parallel
+      const [recommendationsResponse, applicationsResponse] = await Promise.all([
+        axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          params: {
+            limit: 3 // Get top 3 recommendations for dashboard
+          }
+        }),
+        axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        }).catch(() => ({ data: { data: [] } })) // Fallback to empty array if error
+      ]);
 
-      setRecommendedJobs(response.data.data || []);
+      const allRecommendedJobs = recommendationsResponse.data.data || [];
+      
+      // Filter out jobs that user has already applied to (excluding withdrawn applications)
+      const userApplications = applicationsResponse.data.data || [];
+      const appliedJobIds = userApplications
+        .filter((app: Application) => app.status !== 'withdrawn')
+        .map((app: Application) => app.jobId?._id || app.jobId)
+        .filter(Boolean);
+      
+      const filteredJobs = allRecommendedJobs.filter(
+        (job: any) => !appliedJobIds.includes(job._id)
+      );
+
+      setRecommendedJobs(filteredJobs);
     } catch (error: any) {
       // Silent error handling
       // Set empty array on error to show "no recommendations" state

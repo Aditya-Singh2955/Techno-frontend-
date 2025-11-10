@@ -603,7 +603,7 @@ export default function EmployerDashboard() {
                             {formatDate(app.appliedDate || app.createdAt)}
                           </p>
                         </div>
-                        <div className="flex flex-col gap-2 flex-shrink-0">
+                        <div className="flex-shrink-0">
                           <Button 
                             size="sm" 
                             variant="outline" 
@@ -616,39 +616,6 @@ export default function EmployerDashboard() {
                           >
                             View
                           </Button>
-                          <Dialog open={reviewOpen && selectedApp?._id === app._id} onOpenChange={open => { setReviewOpen(open); if (!open) setSelectedApp(null); }}>
-                            <Button 
-                              size="sm" 
-                              className="gradient-bg text-white text-xs h-7 whitespace-nowrap" 
-                              onClick={() => { setSelectedApp(app); setReviewOpen(true); }}
-                            >
-                              Review
-                            </Button>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Review Application</DialogTitle>
-                                <DialogDescription>Rate & Comment the application</DialogDescription>
-                              </DialogHeader>
-                              <Card className="mb-2">
-                                <CardContent>
-                                  <div className="mb-2">
-                                    <b>Rating:</b>
-                                    {[1,2,3,4,5].map(star => (
-                                      <span key={star} style={{ cursor: 'pointer', color: review.rating >= star ? '#10b981' : '#d1d5db' }} onClick={() => setReview(r => ({ ...r, rating: star }))}>★</span>
-                                    ))}
-                                  </div>
-                                  <div className="mb-2">
-                                    <b>Comments:</b>
-                                    <textarea className="w-full border rounded p-2 mt-1" rows={2} value={review.comments} onChange={e => setReview(r => ({ ...r, comments: e.target.value }))} />
-                                  </div>
-                                </CardContent>
-                                <CardFooter className="flex justify-between">
-                                  <Button variant="outline" onClick={() => setReviewOpen(false)}>Cancel</Button>
-                                  <Button variant="default" className="bg-emerald-600 text-white" onClick={() => { setReview(r => ({ ...r, timestamp: new Date().toISOString() })); setReviewOpen(false); }}>Save</Button>
-                                </CardFooter>
-                              </Card>
-                            </DialogContent>
-                          </Dialog>
                         </div>
                       </div>
                     );
