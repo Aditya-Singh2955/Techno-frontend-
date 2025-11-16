@@ -14,6 +14,14 @@ export default function AdminApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 0,
+    totalCount: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10
+  })
 
   const columns = [
     { key: 'id', label: 'Application ID', sortable: true },
@@ -21,43 +29,74 @@ export default function AdminApplicationsPage() {
     { key: 'jobTitle', label: 'Job Title', sortable: true },
   ]
 
-  const handleExportToExcel = () => {
-    const workbook = XLSX.utils.book_new()
-    const worksheetData = [
-      ['Application ID', 'Candidate', 'Job Title'],
-      ...applications.map(app => [app.id, app.candidate, app.jobTitle])
-    ]
-    
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Applications')
-    
-    const filename = `Applications_${new Date().toISOString().split('T')[0]}.xlsx`
-    XLSX.writeFile(workbook, filename)
+  const handleExportToExcel = async () => {
+    try {
+      // Fetch all applications for export (use a large limit to get all)
+      const queryParams = new URLSearchParams({
+        page: '1',
+        limit: (pagination.totalCount > 0 ? pagination.totalCount : 10000).toString(),
+        sortBy: 'appliedDate',
+        sortOrder: 'desc'
+      })
+      
+      const res = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/applications?${queryParams}`)
+      const json = await res.json()
+      
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to fetch applications for export')
+      }
+      
+      const allApplications = json.data.applications
+      
+      const workbook = XLSX.utils.book_new()
+      const worksheetData = [
+        ['Application ID', 'Candidate', 'Job Title'],
+        ...allApplications.map((app: Application) => [app.id, app.candidate, app.jobTitle])
+      ]
+      
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Applications')
+      
+      const filename = `Applications_${new Date().toISOString().split('T')[0]}.xlsx`
+      XLSX.writeFile(workbook, filename)
+    } catch (error: any) {
+      console.error('Error exporting applications:', error)
+      setError(error.message || 'Failed to export applications')
+    }
   }
 
   const handleViewMore = (application: Application) => {
     router.push(application.applicationUrl)
   }
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const res = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/admin/applications')
-        const json = await res.json()
-        if (!res.ok || !json.success) {
-          throw new Error(json.message || 'Failed to fetch applications')
-        }
-        setApplications(json.data.applications)
-      } catch (e: any) {
-        console.error('Error loading applications:', e)
-        setError(e.message || 'Failed to load applications')
-      } finally {
-        setIsLoading(false)
+  const fetchApplications = async (page: number = 1) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+        sortBy: 'appliedDate',
+        sortOrder: 'desc'
+      })
+      
+      const res = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/applications?${queryParams}`)
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Failed to fetch applications')
       }
+      setApplications(json.data.applications)
+      setPagination(json.data.pagination)
+    } catch (e: any) {
+      console.error('Error loading applications:', e)
+      setError(e.message || 'Failed to load applications')
+    } finally {
+      setIsLoading(false)
     }
-    fetchApplications()
+  }
+
+  useEffect(() => {
+    fetchApplications(1)
   }, [])
 
   const renderActions = (application: Application) => (
@@ -102,11 +141,45 @@ export default function AdminApplicationsPage() {
           <span className="ml-3 text-gray-600">Loading applications...</span>
         </div>
       ) : (
-        <AdminDataTable
-          data={applications}
-          columns={columns}
-          actions={renderActions}
-        />
+        <>
+          <AdminDataTable
+            data={applications}
+            columns={columns}
+            actions={renderActions}
+          />
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <div className="text-sm text-gray-700">
+                Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to{' '}
+                {Math.min(pagination.currentPage * pagination.limit, pagination.totalCount)} of{' '}
+                {pagination.totalCount} results
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchApplications(pagination.currentPage - 1)}
+                  disabled={!pagination.hasPrevPage || isLoading}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchApplications(pagination.currentPage + 1)}
+                  disabled={!pagination.hasNextPage || isLoading}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
