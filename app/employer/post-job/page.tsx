@@ -46,9 +46,35 @@ export default function PostJobPage() {
     updateField(field, value)
   }
 
+  // Get today's date in YYYY-MM-DD format for date input min attribute
+  const getTodayDate = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate deadline is not in the past
+    if (formData.deadline) {
+      const deadlineDate = new Date(formData.deadline)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Reset time to start of day for accurate comparison
+      deadlineDate.setHours(0, 0, 0, 0)
+      
+      if (deadlineDate < today) {
+        toast({
+          title: "Invalid Deadline",
+          description: "Application deadline cannot be in the past. Please select a future date.",
+          variant: "destructive",
+        })
+        return
+      }
+    }
     
     try {
       // Check employer eligibility first
@@ -306,6 +332,7 @@ export default function PostJobPage() {
                       value={formData.deadline}
                       onChange={(e) => handleChange("deadline", e.target.value)}
                       className="h-11 pl-10"
+                      min={getTodayDate()}
                       required
                     />
                   </div>

@@ -114,11 +114,8 @@ export default function JobSearchPage() {
         }
       })
 
-      // Extract job IDs from applications, excluding withdrawn applications
-      const appliedJobIds = response.data.data
-        .filter((app: any) => app.status !== 'withdrawn') // Filter out withdrawn applications
-        .map((app: any) => app.jobId?._id || app.jobId)
-        .filter(Boolean)
+      // Extract job IDs from applications
+      const appliedJobIds = response.data.data.map((app: any) => app.jobId?._id || app.jobId).filter(Boolean)
       
       // Update state and localStorage
       setAppliedJobs(appliedJobIds)
@@ -530,13 +527,11 @@ export default function JobSearchPage() {
         )}
 
         {/* Load More */}
-        {jobs.length > 4 && (
-          <div className="text-center mt-8">
-            <Button variant="outline" size="lg" onClick={fetchJobs}>
-              Load More Jobs
-            </Button>
-          </div>
-        )}
+        <div className="text-center mt-8">
+          <Button variant="outline" size="lg" onClick={fetchJobs}>
+            Load More Jobs
+          </Button>
+        </div>
       </div>
 
       {/* Profile Completion Dialog */}

@@ -106,35 +106,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       setError(null)
       
-      // Handle admin login with backend API
+      // Handle admin login with mock data (since backend doesn't support admin yet)
       if (type === "admin") {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'
-        const resp = await fetch(`${API_BASE_URL}/admin/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        })
-        const data = await resp.json()
-
-        if (!resp.ok || !data?.success) {
-          setError(data?.message || 'Invalid admin credentials')
+        // Simulate API call delay
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        
+        // Check if email contains admin or if it's a specific admin email
+        const isAdmin = /admin/i.test(email) || email === "admin@findr.com"
+        
+        if (!isAdmin) {
+          setError("Invalid admin credentials")
           return false
         }
-
-        const adminUser: User = {
-          id: data.user.id,
-          email: data.user.email,
-          type: 'admin',
-          name: data.user.name,
-          profileImage: '/images/admin-hero.png',
-          role: data.user.role || 'admin',
+        
+        const mockAdminUser: User = {
+          id: "admin-1",
+          email,
+          type: "admin",
+          name: "Admin User",
+          profileImage: "/images/admin-hero.png",
+          role: "admin",
         }
 
-        setUser(adminUser)
-        localStorage.setItem("findr_user", JSON.stringify(adminUser))
-        localStorage.setItem("findr_token", data.token)
-        // keep compatibility key if used elsewhere
-        localStorage.setItem("authToken", data.token)
+        setUser(mockAdminUser)
+        localStorage.setItem("findr_user", JSON.stringify(mockAdminUser))
+        localStorage.setItem("findr_token", "mock-admin-token")
         
         return true
       }

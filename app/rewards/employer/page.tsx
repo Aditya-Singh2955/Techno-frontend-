@@ -51,7 +51,7 @@ const employerTiers: EmployerTier[] = [
   {
     name: "Gold",
     label: "Advanced Tier",
-    employees: "501 – 1000",
+    employees: "501 – 1000+",
     icon: Award,
     color: "text-yellow-600",
     bg: "bg-yellow-50",

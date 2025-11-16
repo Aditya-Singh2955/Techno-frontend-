@@ -37,7 +37,6 @@ export default function JobSeekerDashboard() {
   const [calculatedCompletion, setCalculatedCompletion] = useState(0);
   const [calculatedPoints, setCalculatedPoints] = useState(0);
   const [interviewCount, setInterviewCount] = useState(0);
-  const [serverPoints, setServerPoints] = useState<number | null>(null);
   const [referralStats, setReferralStats] = useState({ total: 0, active: 0, successful: 0 });
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
   const [rmServiceStatus, setRmServiceStatus] = useState("inactive");
@@ -119,37 +118,16 @@ export default function JobSeekerDashboard() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      // Fetch both recommendations and applications in parallel
-      const [recommendationsResponse, applicationsResponse] = await Promise.all([
-        axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          params: {
-            limit: 3 // Get top 3 recommendations for dashboard
-          }
-        }),
-        axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
-        }).catch(() => ({ data: { data: [] } })) // Fallback to empty array if error
-      ]);
+      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        params: {
+          limit: 3 // Get top 3 recommendations for dashboard
+        }
+      });
 
-      const allRecommendedJobs = recommendationsResponse.data.data || [];
-      
-      // Filter out jobs that user has already applied to (excluding withdrawn applications)
-      const userApplications = applicationsResponse.data.data || [];
-      const appliedJobIds = userApplications
-        .filter((app: Application) => app.status !== 'withdrawn')
-        .map((app: Application) => app.jobId?._id || app.jobId)
-        .filter(Boolean);
-      
-      const filteredJobs = allRecommendedJobs.filter(
-        (job: any) => !appliedJobIds.includes(job._id)
-      );
-
-      setRecommendedJobs(filteredJobs);
+      setRecommendedJobs(response.data.data || []);
     } catch (error: any) {
       // Silent error handling
       // Set empty array on error to show "no recommendations" state
@@ -160,9 +138,9 @@ export default function JobSeekerDashboard() {
   // Calculate profile completion and points (same logic as profile page)
   const calculateProfileMetrics = (profile: any) => {
     let completed = 0;
-    const totalFields = 24; // Same as profile page (employmentVisa removed)
+    const totalFields = 25; // Same as profile page
 
-    // Personal Info (9 fields)
+    // Personal Info (10 fields)
     if (profile?.fullName) completed++;
     if (profile?.email) completed++;
     if (profile?.phoneNumber) completed++;
@@ -172,6 +150,7 @@ export default function JobSeekerDashboard() {
     if (profile?.professionalSummary) completed++;
     if (profile?.emirateId) completed++;
     if (profile?.passportNumber) completed++;
+    if (profile?.employmentVisa) completed++;
 
     // Experience (4 fields)
     const exp = profile?.professionalExperience?.[0];
@@ -202,9 +181,8 @@ export default function JobSeekerDashboard() {
     const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
     const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
     const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
-    const socialMediaBonus = profile?.rewards?.socialMediaBonus || 0; // Bonus points from following social media
     const deductedPoints = profile?.deductedPoints || 0;
-    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints + socialMediaBonus;
+    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
     const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return { percentage, points: availablePoints };
@@ -234,26 +212,11 @@ export default function JobSeekerDashboard() {
 
         const data = await response.json();
         setUserProfile(data.data);
-        // Prefer server points if provided
-        const apiPoints = (typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? null));
-        if (apiPoints !== null) {
-          setServerPoints(apiPoints);
-        } else {
-          setServerPoints(null);
-        }
         
         // Calculate metrics locally
         const metrics = calculateProfileMetrics(data.data);
         setCalculatedCompletion(metrics.percentage);
-        // If server points available, display that (minus deductedPoints); else use calculated
-        const dp = data.data?.deductedPoints || 0;
-        if (typeof data.data.points === 'number') {
-          setCalculatedPoints(Math.max(0, data.data.points - dp));
-        } else if (typeof data.data.rewards?.totalPoints === 'number') {
-          setCalculatedPoints(Math.max(0, data.data.rewards.totalPoints - dp));
-        } else {
-          setCalculatedPoints(metrics.points);
-        }
+        setCalculatedPoints(metrics.points);
         
         // Set RM Service status
         setRmServiceStatus(data.data.rmService === "Active" ? "active" : "inactive");
@@ -345,13 +308,14 @@ export default function JobSeekerDashboard() {
                         const yearsExp = userProfile?.professionalExperience?.[0]?.yearsOfExperience || 0;
                         
                         const isEmirati = userProfile?.nationality?.toLowerCase()?.includes("emirati");
+                        const hasEmploymentVisa = userProfile?.employmentVisa === "yes";
                         const hasEmiratesId = !!userProfile?.emirateId;
                         
                         let tier;
                         if (points >= 500) tier = "Platinum";
                         else if (isEmirati || yearsExp >= 10) tier = "Gold";
-                        else if (yearsExp >= 5 && hasEmiratesId) tier = "Silver";
-                        else if (yearsExp <= 4) tier = "Blue";
+                        else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) tier = "Silver";
+                        else if (yearsExp <= 4 || hasEmploymentVisa) tier = "Blue";
                         else tier = "Silver";
                         
                         

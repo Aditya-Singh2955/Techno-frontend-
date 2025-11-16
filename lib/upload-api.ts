@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com';
 
 export interface UploadedFile {
   url: string;
@@ -23,14 +23,6 @@ export class UploadAPI {
     const formData = new FormData();
     formData.append('file', file);
     
-    // Determine if this is a document (resume, PDF, DOC, etc.)
-    const fileType = this.getFileType(file);
-    const isDocument = fileType === 'document';
-    
-    // Use /upload-raw endpoint for documents (resume and other documents)
-    // Note: API_BASE_URL already includes /api/v1, so we just append the route
-    const endpoint = isDocument ? `${API_BASE_URL}/upload-raw` : `${API_BASE_URL}/upload`;
-    
     // Add options as form data if needed
     if (options.folder) {
       formData.append('folder', options.folder);
@@ -41,7 +33,7 @@ export class UploadAPI {
     }
 
     try {
-      const response = await axios.post(endpoint, formData, {
+      const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -61,32 +53,13 @@ export class UploadAPI {
 
   static getFileType(file: File): 'image' | 'video' | 'document' | 'other' {
     const mimeType = file.type;
-    const fileName = file.name.toLowerCase();
     
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
-    
-    // Check for document types by MIME type
     if (mimeType === 'application/pdf' || 
         mimeType === 'application/msword' || 
         mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        mimeType === 'application/vnd.ms-excel' ||
-        mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-        mimeType === 'application/vnd.ms-powerpoint' ||
-        mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
-        mimeType === 'text/plain' ||
-        mimeType === 'application/rtf') return 'document';
-    
-    // Check by file extension as fallback
-    if (fileName.endsWith('.pdf') || 
-        fileName.endsWith('.doc') || 
-        fileName.endsWith('.docx') ||
-        fileName.endsWith('.xls') ||
-        fileName.endsWith('.xlsx') ||
-        fileName.endsWith('.ppt') ||
-        fileName.endsWith('.pptx') ||
-        fileName.endsWith('.txt') ||
-        fileName.endsWith('.rtf')) return 'document';
+        mimeType === 'text/plain') return 'document';
     
     return 'other';
   }
