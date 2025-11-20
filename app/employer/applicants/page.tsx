@@ -135,6 +135,11 @@ const formatStatus = (status: string) => {
   ).join(' ');
 };
 
+const normalizeId = (id: string | undefined | null) => {
+  if (!id) return '';
+  return id.toString().trim().toLowerCase();
+};
+
 export default function AllApplicantsPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -230,13 +235,6 @@ export default function AllApplicantsPage() {
   useEffect(() => {
     fetchApplicants();
   }, [pagination.page, statusFilter, jobFilter]);
-
-
-  // Helper to normalize ID for comparison
-  const normalizeId = (id: string | undefined): string => {
-    if (!id) return '';
-    return String(id).trim();
-  };
 
   // Filter applicants based on search
   const filteredApplicants = useMemo(() => {

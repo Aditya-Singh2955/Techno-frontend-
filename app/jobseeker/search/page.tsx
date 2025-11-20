@@ -100,6 +100,25 @@ export default function JobSearchPage() {
     fetchJobs()
     // Also fetch user's applications to mark already applied jobs
     fetchUserApplications()
+    
+    // Refresh applied jobs when page becomes visible or focused (user navigates back)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUserApplications()
+      }
+    }
+    
+    const handleFocus = () => {
+      fetchUserApplications()
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [])
 
   // Fetch user's applications to track which jobs have been applied to
@@ -114,8 +133,11 @@ export default function JobSearchPage() {
         }
       })
 
-      // Extract job IDs from applications
-      const appliedJobIds = response.data.data.map((app: any) => app.jobId?._id || app.jobId).filter(Boolean)
+      // Extract job IDs from applications, excluding withdrawn applications
+      const appliedJobIds = response.data.data
+        .filter((app: any) => app.status !== 'withdrawn') // Exclude withdrawn applications
+        .map((app: any) => app.jobId?._id || app.jobId)
+        .filter(Boolean)
       
       // Update state and localStorage
       setAppliedJobs(appliedJobIds)
@@ -526,12 +548,14 @@ export default function JobSearchPage() {
           </div>
         )}
 
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <Button variant="outline" size="lg" onClick={fetchJobs}>
-            Load More Jobs
-          </Button>
-        </div>
+        {/* Load More - Only show if there are more than 4 jobs */}
+        {!isLoading && jobs.length > 4 && (
+          <div className="text-center mt-8">
+            <Button variant="outline" size="lg" onClick={fetchJobs}>
+              Load More Jobs
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Profile Completion Dialog */}

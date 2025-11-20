@@ -144,6 +144,31 @@ export default function JobSeekerProfilePage() {
 
   const [profileCompletion, setProfileCompletion] = useState(0)
   const [points, setPoints] = useState(0)
+  const [emiratesIdError, setEmiratesIdError] = useState<string>("")
+
+  // Helper function to modify Cloudinary URL to force download
+  const getDownloadUrl = (url: string): string => {
+    if (!url) return url;
+    
+    // Check if it's a Cloudinary URL
+    if (url.includes('res.cloudinary.com')) {
+      // Add fl_attachment flag to force download
+      // Format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{transformations}/{version}/{public_id}
+      // We need to insert fl_attachment after /upload/
+      const uploadIndex = url.indexOf('/upload/');
+      if (uploadIndex !== -1) {
+        const beforeUpload = url.substring(0, uploadIndex + 8); // Include '/upload/'
+        const afterUpload = url.substring(uploadIndex + 8);
+        
+        // Check if fl_attachment already exists
+        if (!afterUpload.startsWith('fl_attachment')) {
+          return `${beforeUpload}fl_attachment/${afterUpload}`;
+        }
+      }
+    }
+    
+    return url;
+  }
   const [tier, setTier] = useState("Blue")
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -229,11 +254,11 @@ export default function JobSeekerProfilePage() {
             availability: apiData.jobPreferences?.availability || "",
           },
           certifications: apiData.certifications?.join(", ") || "",
-          resume: apiData.jobPreferences?.resumeAndDocs?.length > 0 || false,
+          resumeDocument: apiData.resumeDocument || "",
+          resume: !!(apiData.resumeDocument || apiData.jobPreferences?.resumeAndDocs?.length > 0),
           resumeUrl: "", // Keep empty for now, could be enhanced later
           profilePicture: apiData.profilePicture || "",
           introVideo: apiData.introVideo || "",
-          resumeDocument: apiData.resumeDocument || "",
           documents: (apiData.jobPreferences?.resumeAndDocs || []).map((url: string, index: number) => {
             // Extract filename from URL if possible
             let filename = `Document ${index + 1}`;
@@ -273,10 +298,24 @@ export default function JobSeekerProfilePage() {
           setTier(apiData.membershipTier)
         }
         
-        if (apiData.rewards?.completeProfile !== undefined) {
-          setProfileCompletion(apiData.rewards.completeProfile)
-        } else if (apiData.profileCompleted !== undefined) {
-          setProfileCompletion(parseInt(apiData.profileCompleted) || 0)
+        // Use profileCompleted (percentage) instead of rewards.completeProfile (points)
+        // Backend stores points in rewards.completeProfile but percentage in profileCompleted
+        if (apiData.profileCompleted !== undefined) {
+          const percentage = parseInt(apiData.profileCompleted) || 0
+          // Ensure percentage is between 0-100, not points (250)
+          if (percentage <= 100) {
+            setProfileCompletion(percentage)
+          } else {
+            // If it's > 100, it's likely points, so let useEffect recalculate
+            // The useEffect will calculate correctly from profileData
+          }
+        } else if (apiData.rewards?.completeProfile !== undefined) {
+          // Fallback: check if it's actually a percentage (<= 100) or points (> 100)
+          const value = apiData.rewards.completeProfile
+          if (value <= 100) {
+            setProfileCompletion(value)
+          }
+          // If > 100, ignore it and let useEffect recalculate
         }
       }
     } catch (error) {
@@ -298,6 +337,19 @@ export default function JobSeekerProfilePage() {
       
       if (!token) {
         throw new Error('No authentication token found')
+      }
+
+      // Validate Emirates ID if provided
+      const emiratesId = profileData.personalInfo.emiratesId;
+      if (emiratesId && emiratesId.length !== 15) {
+        setEmiratesIdError("Emirates ID must be exactly 15 digits");
+        toast({
+          title: "Validation Error",
+          description: "Emirates ID must be exactly 15 digits. Please correct it before saving.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
       }
 
       // Map local state to API format (matching your backend controller)
@@ -381,15 +433,9 @@ export default function JobSeekerProfilePage() {
       const data = await response.json()
       
       if (response.ok && data.message) {
-        // Update local state with any returned data
-        if (data.data) {
-          // Update profile completion if returned by backend
-          const updatedUser = data.data
-          if (updatedUser.rewards) {
-            setProfileCompletion(updatedUser.rewards.completeProfile || profileCompletion)
-          }
-          // Points will be recalculated in the useEffect
-        }
+        // Don't update profileCompletion from save response - it may contain points (250) instead of percentage (100)
+        // The useEffect already calculates it correctly based on profileData, so we keep that value
+        // Only update other fields if needed, but let the useEffect handle completion calculation
         
         toast({
           title: "Profile Updated Successfully!",
@@ -426,9 +472,9 @@ export default function JobSeekerProfilePage() {
   useEffect(() => {
     const calculateCompletion = () => {
       let completed = 0
-      const totalFields = 25 // Updated total fields count
+      const totalFields = 24 // Updated: removed employmentVisa (not in form)
 
-      // Personal Info (10 fields)
+      // Personal Info (9 fields - employmentVisa is optional, not in form)
       if (profileData.personalInfo.fullName) completed++
       if (profileData.personalInfo.email) completed++
       if (profileData.personalInfo.phone) completed++
@@ -438,7 +484,7 @@ export default function JobSeekerProfilePage() {
       if (profileData.personalInfo.summary) completed++
       if (profileData.personalInfo.emiratesId) completed++
       if (profileData.personalInfo.passportNumber) completed++
-      if (profileData.personalInfo.employmentVisa) completed++
+      // employmentVisa removed from required fields as it's not in the form
 
       // Experience (4 fields)
       if (profileData.experience.currentRole) completed++
@@ -456,14 +502,15 @@ export default function JobSeekerProfilePage() {
       if (profileData.skills) completed++
       if (profileData.preferences.jobType) completed++
       if (profileData.certifications) completed++
-      if (profileData.resume) completed++
+      // Check if resume exists (either resume boolean or resumeDocument URL)
+      if (profileData.resume || profileData.resumeDocument) completed++
 
       // Social Links (3 fields)
       if (profileData.socialLinks.linkedin) completed++
       if (profileData.socialLinks.instagram) completed++
       if (profileData.socialLinks.twitter) completed++
 
-      const percentage = Math.round((completed / totalFields) * 100)
+      const percentage = Math.min(Math.round((completed / totalFields) * 100), 100)
       setProfileCompletion(percentage)
 
       // Calculate points based on completion (same logic as dashboard and cart)
@@ -737,7 +784,7 @@ export default function JobSeekerProfilePage() {
                 </div>
 
                 <div className="text-center lg:text-right">
-                  <div className="text-2xl font-bold text-blue-900 mb-1">{profileCompletion}%</div>
+                  <div className="text-2xl font-bold text-blue-900 mb-1">{Math.min(profileCompletion, 100)}%</div>
                   <div className="text-blue-700 mb-3 text-sm">Profile Complete</div>
                   <Progress value={profileCompletion} className="w-40 h-2" />
                   <p className="text-xs text-blue-600 mt-2">
@@ -847,9 +894,32 @@ export default function JobSeekerProfilePage() {
                   <Input
                     id="emiratesId"
                     value={profileData.personalInfo.emiratesId}
-                    onChange={(e) => handleInputChange("personalInfo", "emiratesId", e.target.value)}
-                    placeholder="Enter your Emirates ID (optional)"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Only allow numbers
+                      const numericValue = value.replace(/\D/g, '');
+                      // Limit to 15 digits
+                      const limitedValue = numericValue.slice(0, 15);
+                      
+                      handleInputChange("personalInfo", "emiratesId", limitedValue);
+                      
+                      // Validate and set error (only if field has value, since it's optional)
+                      if (limitedValue && limitedValue.length !== 15) {
+                        setEmiratesIdError("Emirates ID must be exactly 15 digits");
+                      } else if (limitedValue.length === 15) {
+                        setEmiratesIdError("");
+                      } else {
+                        // Clear error if field is empty (optional field)
+                        setEmiratesIdError("");
+                      }
+                    }}
+                    placeholder="Enter 15-digit Emirates ID (optional)"
+                    maxLength={15}
+                    className={emiratesIdError ? "border-red-500" : ""}
                   />
+                  {emiratesIdError && (
+                    <p className="text-sm text-red-500 mt-1">{emiratesIdError}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="passportNumber">Passport Number</Label>
@@ -1375,11 +1445,78 @@ export default function JobSeekerProfilePage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = profileData.resumeDocument;
-                            link.download = 'resume';
-                            link.click();
+                          onClick={async () => {
+                            if (!profileData.resumeDocument) {
+                              toast({
+                                title: "Download Error",
+                                description: "Resume is not available for download.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            try {
+                              // Get the download URL with fl_attachment flag for Cloudinary
+                              const downloadUrl = getDownloadUrl(profileData.resumeDocument);
+                              
+                              // Extract filename from URL or use default
+                              let filename = 'resume';
+                              if (profileData.resumeDocument.includes('res.cloudinary.com')) {
+                                const urlParts = profileData.resumeDocument.split('/');
+                                const lastPart = urlParts[urlParts.length - 1];
+                                if (lastPart && lastPart.includes('.')) {
+                                  const cleanFilename = lastPart.split('?')[0].split('_')[0];
+                                  if (cleanFilename && cleanFilename.length > 0) {
+                                    filename = cleanFilename;
+                                  }
+                                }
+                              }
+                              
+                              // Get file extension from URL
+                              const urlLower = profileData.resumeDocument.toLowerCase();
+                              let extension = 'pdf';
+                              if (urlLower.includes('.docx') || filename.toLowerCase().endsWith('.docx')) extension = 'docx';
+                              else if (urlLower.includes('.doc') || filename.toLowerCase().endsWith('.doc')) extension = 'doc';
+                              else if (urlLower.includes('.txt') || filename.toLowerCase().endsWith('.txt')) extension = 'txt';
+                              else if (urlLower.includes('.pdf') || filename.toLowerCase().endsWith('.pdf')) extension = 'pdf';
+                              
+                              // If filename doesn't have extension, add it
+                              if (!filename.toLowerCase().endsWith(`.${extension}`)) {
+                                filename = `${filename}.${extension}`;
+                              }
+                              
+                              // Fetch the file as a blob
+                              const response = await fetch(downloadUrl);
+                              if (!response.ok) {
+                                throw new Error('Failed to fetch file');
+                              }
+                              
+                              const blob = await response.blob();
+                              const blobUrl = URL.createObjectURL(blob);
+                              
+                              // Create download link
+                              const link = document.createElement('a');
+                              link.href = blobUrl;
+                              link.download = filename;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              
+                              // Clean up blob URL
+                              URL.revokeObjectURL(blobUrl);
+                              
+                              toast({
+                                title: "Download Started",
+                                description: `Downloading ${filename}...`,
+                              });
+                            } catch (error) {
+                              console.error('Download error:', error);
+                              toast({
+                                title: "Download failed",
+                                description: "Failed to download resume. Please try again.",
+                                variant: "destructive",
+                              });
+                            }
                           }}
                           className="h-8 px-3"
                         >
@@ -1395,7 +1532,7 @@ export default function JobSeekerProfilePage() {
                 <FileUpload
                   onUploadSuccess={async (fileData) => {
                     const resumeUrl = fileData.secure_url || fileData.url;
-                    setProfileData(prev => ({ ...prev, resumeDocument: resumeUrl }));
+                    setProfileData(prev => ({ ...prev, resumeDocument: resumeUrl, resume: true }));
                     
                     // Auto-save to database
                     try {
@@ -1486,11 +1623,82 @@ export default function JobSeekerProfilePage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = doc.url;
-                              link.download = doc.name;
-                              link.click();
+                            onClick={async () => {
+                              if (!doc.url) {
+                                toast({
+                                  title: "Download Error",
+                                  description: "Document is not available for download.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
+
+                              try {
+                                // Get the download URL with fl_attachment flag for Cloudinary
+                                const downloadUrl = getDownloadUrl(doc.url);
+                                
+                                // Extract filename from doc.name or URL
+                                let filename = doc.name;
+                                if (doc.url.includes('res.cloudinary.com') && !filename.includes('.')) {
+                                  const urlParts = doc.url.split('/');
+                                  const lastPart = urlParts[urlParts.length - 1];
+                                  if (lastPart && lastPart.includes('.')) {
+                                    const cleanFilename = lastPart.split('?')[0].split('_')[0];
+                                    if (cleanFilename && cleanFilename.length > 0) {
+                                      filename = cleanFilename;
+                                    }
+                                  }
+                                }
+                                
+                                // Get file extension from name or URL
+                                const urlLower = doc.url.toLowerCase();
+                                let extension = '';
+                                if (filename.includes('.')) {
+                                  extension = filename.split('.').pop() || '';
+                                } else if (urlLower.includes('.pdf')) extension = 'pdf';
+                                else if (urlLower.includes('.docx')) extension = 'docx';
+                                else if (urlLower.includes('.doc')) extension = 'doc';
+                                else if (urlLower.includes('.txt')) extension = 'txt';
+                                else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) extension = 'jpg';
+                                else if (urlLower.includes('.png')) extension = 'png';
+                                
+                                // If filename doesn't have extension, add it
+                                if (extension && !filename.toLowerCase().endsWith(`.${extension}`)) {
+                                  filename = `${filename}.${extension}`;
+                                }
+                                
+                                // Fetch the file as a blob
+                                const response = await fetch(downloadUrl);
+                                if (!response.ok) {
+                                  throw new Error('Failed to fetch file');
+                                }
+                                
+                                const blob = await response.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                
+                                // Create download link
+                                const link = document.createElement('a');
+                                link.href = blobUrl;
+                                link.download = filename;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                
+                                // Clean up blob URL
+                                URL.revokeObjectURL(blobUrl);
+                                
+                                toast({
+                                  title: "Download Started",
+                                  description: `Downloading ${filename}...`,
+                                });
+                              } catch (error) {
+                                console.error('Download error:', error);
+                                toast({
+                                  title: "Download failed",
+                                  description: "Failed to download document. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
                             }}
                             className="h-8 px-2"
                           >

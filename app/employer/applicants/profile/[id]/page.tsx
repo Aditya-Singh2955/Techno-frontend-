@@ -138,6 +138,7 @@ export default function ApplicantProfilePage() {
   const [applicantData, setApplicantData] = useState<ApplicantData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [interviewDetails, setInterviewDetails] = useState({
     date: "",
     time: "",
@@ -169,15 +170,24 @@ export default function ApplicantProfilePage() {
           return;
         }
 
-        // Fetch applicant data using the application ID
+        // Fetch applicant data using the application ID - always fetch fresh data
         const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${idParam}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache',
+          },
+          params: {
+            _t: Date.now() // Cache busting parameter
           }
         });
 
-        
-        setApplicantData(response.data.data);
+        // Ensure we have the data and log for debugging
+        if (response.data && response.data.data) {
+          console.log('Fetched application status:', response.data.data.status);
+          setApplicantData(response.data.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
         
         // Fetch existing employer review for this application
         await fetchEmployerReview();
@@ -231,6 +241,100 @@ export default function ApplicantProfilePage() {
     return status.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
+  };
+
+  const getDownloadUrl = (url: string): string => {
+    if (!url) return url;
+    if (url.includes('res.cloudinary.com')) {
+      const uploadIndex = url.indexOf('/upload/');
+      if (uploadIndex !== -1) {
+        const beforeUpload = url.substring(0, uploadIndex + 8);
+        const afterUpload = url.substring(uploadIndex + 8);
+        if (!afterUpload.startsWith('fl_attachment')) {
+          return `${beforeUpload}fl_attachment/${afterUpload}`;
+        }
+      }
+    }
+    return url;
+  };
+
+  const handleDownloadResume = async () => {
+    const resumeUrl = candidate.resumeDocument || applicantData?.resume;
+    if (!resumeUrl) {
+      toast({
+        title: "Resume unavailable",
+        description: "This candidate has not uploaded a resume yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Get the download URL with fl_attachment flag for Cloudinary
+      const downloadUrl = getDownloadUrl(resumeUrl);
+      
+      // Extract filename from URL or use default
+      let filename = 'candidate-resume';
+      const urlLower = resumeUrl.toLowerCase();
+      
+      // Try to extract original filename from Cloudinary URL
+      if (resumeUrl.includes('res.cloudinary.com')) {
+        // Cloudinary URLs often have the filename in the path
+        const urlParts = resumeUrl.split('/');
+        const lastPart = urlParts[urlParts.length - 1];
+        if (lastPart && lastPart.includes('.')) {
+          // Remove query parameters and transformations
+          const cleanFilename = lastPart.split('?')[0].split('_')[0];
+          if (cleanFilename && cleanFilename.length > 0) {
+            filename = cleanFilename;
+          }
+        }
+      }
+      
+      // Determine file extension
+      let extension = 'pdf';
+      if (urlLower.includes('.docx') || filename.toLowerCase().endsWith('.docx')) extension = 'docx';
+      else if (urlLower.includes('.doc') || filename.toLowerCase().endsWith('.doc')) extension = 'doc';
+      else if (urlLower.includes('.txt') || filename.toLowerCase().endsWith('.txt')) extension = 'txt';
+      else if (urlLower.includes('.pdf') || filename.toLowerCase().endsWith('.pdf')) extension = 'pdf';
+      
+      // If filename doesn't have extension, add it
+      if (!filename.toLowerCase().endsWith(`.${extension}`)) {
+        filename = `${filename}.${extension}`;
+      }
+      
+      // Fetch the file as a blob
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch file');
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL
+      URL.revokeObjectURL(blobUrl);
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${filename}...`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "Failed to download resume. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Update application status
@@ -390,15 +494,18 @@ export default function ApplicantProfilePage() {
   const education = candidate.education?.[0];
 
   const statusColor = (status: string) => {
-    switch (status) {
-      case "Shortlisted":
+    const normalizedStatus = status.toLowerCase();
+    switch (normalizedStatus) {
+      case "shortlisted":
         return "bg-blue-100 text-blue-800";
-      case "Interview Scheduled":
+      case "interview_scheduled":
         return "bg-green-100 text-green-800";
-      case "Hired":
+      case "hired":
         return "bg-purple-100 text-purple-800";
-      case "Rejected":
+      case "rejected":
         return "bg-red-100 text-red-800";
+      case "pending":
+        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -429,12 +536,12 @@ export default function ApplicantProfilePage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Applicants
             </Link>
-            <div className="flex gap-3">
-              <Button variant="outline" size="sm">
+              <div className="flex gap-3">
+              <Button variant="outline" size="sm" onClick={() => setContactDialogOpen(true)}>
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Contact
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleDownloadResume}>
                 <Download className="w-4 h-4 mr-2" />
                 Download CV
               </Button>
@@ -460,8 +567,8 @@ export default function ApplicantProfilePage() {
                   <div>
                     <div className="flex items-center gap-3 mb-1">
                       <h1 className="text-2xl font-bold text-gray-900">{candidate.fullName || candidate.name}</h1>
-                      <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">
-                        Interview_scheduled
+                      <Badge className={`text-xs px-2 py-1 ${statusColor(applicantData.status)}`}>
+                        {formatStatus(applicantData.status)}
                       </Badge>
                     </div>
                     <p className="text-gray-600 mb-2">{candidate.email}</p>
@@ -1078,6 +1185,61 @@ export default function ApplicantProfilePage() {
               disabled={employerReview.rating === 0}
             >
               {existingReview ? 'Update Review' : 'Save Review'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Details Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contact {candidate.fullName || candidate.name}</DialogTitle>
+            <DialogDescription>
+              Quick access to the candidate&apos;s contact information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {candidate.email && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Mail className="w-4 h-4 text-blue-600" />
+                <span>{candidate.email}</span>
+              </div>
+            )}
+            {candidate.phoneNumber && candidate.phoneNumber.trim() !== "" && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Phone className="w-4 h-4 text-emerald-600" />
+                <span>{candidate.phoneNumber}</span>
+              </div>
+            )}
+            {candidate.location && candidate.location.trim() !== "" && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <MapPin className="w-4 h-4 text-purple-600" />
+                <span>{candidate.location}</span>
+              </div>
+            )}
+            {candidate.nationality && candidate.nationality.trim() !== "" && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <User className="w-4 h-4 text-amber-600" />
+                <span>Nationality: {candidate.nationality}</span>
+              </div>
+            )}
+            {candidate.dateOfBirth && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Calendar className="w-4 h-4 text-rose-600" />
+                <span>
+                  Born: {new Date(candidate.dateOfBirth).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContactDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

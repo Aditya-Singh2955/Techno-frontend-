@@ -827,10 +827,41 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                               }
 
                               try {
+                                // Helper function to get download URL with fl_attachment for Cloudinary
+                                const getDownloadUrl = (url: string): string => {
+                                  if (!url) return url;
+                                  if (url.includes('res.cloudinary.com')) {
+                                    const uploadIndex = url.indexOf('/upload/');
+                                    if (uploadIndex !== -1) {
+                                      const beforeUpload = url.substring(0, uploadIndex + 8);
+                                      const afterUpload = url.substring(uploadIndex + 8);
+                                      if (!afterUpload.startsWith('fl_attachment')) {
+                                        return `${beforeUpload}fl_attachment/${afterUpload}`;
+                                      }
+                                    }
+                                  }
+                                  return url;
+                                };
+                                
+                                const downloadUrl = getDownloadUrl(formData.resumeUrl);
+                                
+                                // Extract filename from URL
+                                let filename = formData.friendName || 'Resume';
+                                if (formData.resumeUrl.includes('res.cloudinary.com')) {
+                                  const urlParts = formData.resumeUrl.split('/');
+                                  const lastPart = urlParts[urlParts.length - 1];
+                                  if (lastPart && lastPart.includes('.')) {
+                                    const cleanFilename = lastPart.split('?')[0].split('_')[0];
+                                    if (cleanFilename && cleanFilename.length > 0) {
+                                      filename = cleanFilename;
+                                    }
+                                  }
+                                }
+                                
                                 const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
                                 
                                 // Fetch the file as a blob
-                                const response = await fetch(formData.resumeUrl, {
+                                const response = await fetch(downloadUrl, {
                                   method: 'GET',
                                   headers: token ? {
                                     'Authorization': `Bearer ${token}`,
@@ -842,31 +873,40 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                                 }
 
                                 const blob = await response.blob();
-                                const url = window.URL.createObjectURL(blob);
+                                const blobUrl = window.URL.createObjectURL(blob);
                                 
-                                // Get file extension from URL or default to pdf
+                                // Get file extension from URL or filename
                                 const urlLower = formData.resumeUrl.toLowerCase();
                                 let extension = 'pdf';
-                                if (urlLower.includes('.doc')) extension = 'doc';
-                                else if (urlLower.includes('.docx')) extension = 'docx';
-                                else if (urlLower.includes('.txt')) extension = 'txt';
+                                if (urlLower.includes('.docx') || filename.toLowerCase().endsWith('.docx')) extension = 'docx';
+                                else if (urlLower.includes('.doc') || filename.toLowerCase().endsWith('.doc')) extension = 'doc';
+                                else if (urlLower.includes('.txt') || filename.toLowerCase().endsWith('.txt')) extension = 'txt';
+                                else if (urlLower.includes('.pdf') || filename.toLowerCase().endsWith('.pdf')) extension = 'pdf';
+                                
+                                // If filename doesn't have extension, add it
+                                if (!filename.toLowerCase().endsWith(`.${extension}`)) {
+                                  filename = `${filename}_CV.${extension}`;
+                                } else {
+                                  filename = `${filename.replace(/\.(pdf|doc|docx|txt)$/i, '')}_CV.${extension}`;
+                                }
                                 
                                 // Create a temporary anchor element to trigger download
                                 const link = document.createElement('a');
-                                link.href = url;
-                                link.download = `${formData.friendName || 'Resume'}_CV.${extension}`;
+                                link.href = blobUrl;
+                                link.download = filename;
                                 document.body.appendChild(link);
                                 link.click();
                                 
                                 // Clean up
                                 document.body.removeChild(link);
-                                window.URL.revokeObjectURL(url);
+                                window.URL.revokeObjectURL(blobUrl);
 
                                 toast({
                                   title: "Download Started",
-                                  description: "Resume download has started.",
+                                  description: `Downloading ${filename}...`,
                                 });
                               } catch (error) {
+                                console.error('Download error:', error);
                                 // Fallback: try opening in new tab if download fails
                                 try {
                                   window.open(formData.resumeUrl, '_blank');

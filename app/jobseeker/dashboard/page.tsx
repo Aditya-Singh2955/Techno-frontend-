@@ -138,9 +138,9 @@ export default function JobSeekerDashboard() {
   // Calculate profile completion and points (same logic as profile page)
   const calculateProfileMetrics = (profile: any) => {
     let completed = 0;
-    const totalFields = 25; // Same as profile page
+    const totalFields = 24; // Updated: removed employmentVisa (not in form, matching profile page)
 
-    // Personal Info (10 fields)
+    // Personal Info (9 fields - employmentVisa is optional, not in form)
     if (profile?.fullName) completed++;
     if (profile?.email) completed++;
     if (profile?.phoneNumber) completed++;
@@ -150,7 +150,7 @@ export default function JobSeekerDashboard() {
     if (profile?.professionalSummary) completed++;
     if (profile?.emirateId) completed++;
     if (profile?.passportNumber) completed++;
-    if (profile?.employmentVisa) completed++;
+    // employmentVisa removed from required fields as it's not in the form
 
     // Experience (4 fields)
     const exp = profile?.professionalExperience?.[0];
@@ -170,7 +170,8 @@ export default function JobSeekerDashboard() {
     if (profile?.skills && profile.skills.length > 0) completed++;
     if (profile?.jobPreferences?.preferredJobType && profile.jobPreferences.preferredJobType.length > 0) completed++;
     if (profile?.certifications && profile.certifications.length > 0) completed++;
-    if (profile?.jobPreferences?.resumeAndDocs && profile.jobPreferences.resumeAndDocs.length > 0) completed++;
+    // Check if resume exists (either resumeDocument URL or resumeAndDocs array)
+    if (profile?.resumeDocument || (profile?.jobPreferences?.resumeAndDocs && profile.jobPreferences.resumeAndDocs.length > 0)) completed++;
 
     // Social Links (3 fields)
     if (profile?.socialLinks?.linkedIn) completed++;

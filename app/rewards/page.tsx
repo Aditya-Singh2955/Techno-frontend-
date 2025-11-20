@@ -259,32 +259,7 @@ export default function RewardsPage() {
           </div>
         </div>
 
-        {/* Tier Benefits */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Membership Tiers</CardTitle>
-            <CardDescription>Unlock more benefits as you earn points</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-3 gap-6">
-              {rewardTiers.map((tier) => (
-                <div
-                  key={tier.name}
-                  className={`p-6 rounded-lg border-2 ${
-                    tier.name === currentTier.name ? tier.borderColor : "border-gray-200"
-                  } ${tier.name === currentTier.name ? tier.bgColor : "bg-gray-50"}`}
-                >
-                  <div className="text-center">
-                    <tier.icon className={`w-12 h-12 mx-auto mb-4 ${tier.color}`} />
-                    <h3 className="text-xl font-bold mb-2">{tier.name}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{tier.points}+ points</p>
-                    {tier.name === currentTier.name && <Badge className="gradient-bg text-white">Current Tier</Badge>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        
       </div>
     </div>
   )

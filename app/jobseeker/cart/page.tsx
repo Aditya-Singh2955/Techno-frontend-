@@ -231,13 +231,25 @@ export default function CartPage() {
         },
         body: JSON.stringify(orderData)
       })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(`Failed to place order: ${errorData.message || 'Unknown error'}`)
+
+      const rawBody = await response.text()
+      let parsedBody: any = null
+      try {
+        parsedBody = rawBody ? JSON.parse(rawBody) : null
+      } catch {
+        parsedBody = null
       }
 
-      const data = await response.json()
+      if (!response.ok) {
+        const errMessage = parsedBody?.message || rawBody || 'Failed to place order'
+        throw new Error(typeof errMessage === 'string' ? errMessage : 'Failed to place order')
+      }
+
+      if (!parsedBody) {
+        throw new Error('Unexpected server response. Please try again later.')
+      }
+
+      const data = parsedBody
       
       // Update local points state
       setUserPoints(data.data.remainingPoints)
