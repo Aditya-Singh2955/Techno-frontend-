@@ -68,7 +68,7 @@ export default function EarnMoneyPage() {
       </section>
 
       {/* Demo Video Section */}
-      <section className="max-w-3xl mx-auto px-4 py-8">
+      <section className="max-w-4xl mx-auto px-4 py-8">
         <h3 className="text-2xl font-bold text-center mb-4 flex items-center justify-center gap-2">
           <div className="text-emerald-500">
             <PlayCircle size={28} />
@@ -78,19 +78,22 @@ export default function EarnMoneyPage() {
         <p className="text-center text-gray-600 mb-4">Learn how you can start earning money by referring candidates.</p>
         <div className="flex justify-center">
           <video 
-            controls 
-            className="rounded-xl shadow w-[80vw] max-w-[1000px] min-w-0 md:w-[80%] sm:w-full" 
+            autoPlay
+            
+            loop
+            playsInline
+            className="rounded-xl shadow-lg w-full max-w-[1200px] min-w-0 bg-black" 
             style={{ aspectRatio: '16/9', height: 'auto' }} 
-            poster="/placeholder.jpg"
+            preload="auto"
           >
-            <source src="/demo-referral.mp4" type="video/mp4" />
+            <source src="/referal.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="max-w-3xl mx-auto px-4 py-8">
+      <section className="max-w-5xl mx-auto px-4 py-8">
         <h3 className="text-2xl font-bold text-center mb-6">Frequently Asked Questions</h3>
         <Accordion type="single" collapsible>
           <AccordionItem value="faq-1">

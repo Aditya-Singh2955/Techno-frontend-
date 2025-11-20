@@ -6,11 +6,12 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { UserPlus, Send, Gift, PlayCircle, Briefcase, HelpCircle, DollarSign, TrendingUp } from "lucide-react";
 
 export default function EarnMoneyPage() {
   const router = useRouter();
+  const [videoError, setVideoError] = useState(false);
 
   // Dummy featured jobs
   const featuredJobs = [
@@ -86,27 +87,69 @@ export default function EarnMoneyPage() {
       </section>
 
       {/* Demo Video Section */}
-      <section className="max-w-3xl mx-auto px-4 py-8">
+      <section className="max-w-4xl mx-auto px-4 py-8">
         <h3 className="text-2xl font-bold text-center mb-4 flex items-center justify-center gap-2">
           <PlayCircle className="w-7 h-7 text-emerald-500" />
           Watch How It Works
         </h3>
         <p className="text-center text-gray-600 mb-4">Learn how you can start earning money by referring candidates.</p>
         <div className="flex justify-center">
-          <video 
-            controls 
-            className="rounded-xl shadow w-[80vw] max-w-[1000px] min-w-0 md:w-[80%] sm:w-full" 
-            style={{ aspectRatio: '16/9', height: 'auto' }} 
-            poster="/placeholder.jpg"
-          >
-            <source src="/demo-referral.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          {videoError ? (
+            <div className="rounded-xl shadow-lg w-full max-w-[1200px] bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center" style={{ aspectRatio: '16/9', minHeight: '300px' }}>
+              <div className="text-center p-8">
+                <PlayCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">Unable to load video</p>
+                <p className="text-sm text-gray-500">Please check if the video file exists at /referal.mp4</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setVideoError(false);
+                    // Force reload by updating the video source
+                    const video = document.querySelector('video') as HTMLVideoElement;
+                    if (video) {
+                      video.load();
+                    }
+                  }}
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <video 
+              autoPlay
+              loop
+              playsInline
+              className="rounded-xl shadow-lg w-full max-w-[1200px] bg-black" 
+              style={{ aspectRatio: '16/9', height: 'auto' }} 
+              preload="auto"
+              onError={(e) => {
+                console.error('Video error:', e);
+                const target = e.target as HTMLVideoElement;
+                if (target.error) {
+                  console.error('Video error code:', target.error.code, 'Message:', target.error.message);
+                  console.error('Video src:', target.src);
+                }
+                setVideoError(true);
+              }}
+              onLoadStart={() => {
+                console.log('Video loading started');
+              }}
+              onCanPlay={() => {
+                console.log('Video can play');
+                setVideoError(false);
+              }}
+            >
+              <source src="/referal.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          )}
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="max-w-3xl mx-auto px-4 py-8">
+      <section className="max-w-6xl mx-auto px-4 py-8">
         <h3 className="text-2xl font-bold text-center mb-6">Frequently Asked Questions</h3>
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="faq-1">

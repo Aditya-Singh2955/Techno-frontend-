@@ -226,7 +226,7 @@ export default function PremiumServicesPage() {
             <div className="w-full max-w-4xl" style={{ width: '75%' }}>
               <div className="rounded-2xl shadow-lg overflow-hidden mx-auto" style={{ height: '350px', maxHeight: '60vw' }}>
                 <video
-                  src="/vrm-explainer.mp4"
+                  src="/RmService.mp4"
                   controls
                   className="w-full h-full object-cover bg-black"
                   poster="/vrm-poster.png"
