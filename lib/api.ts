@@ -117,6 +117,12 @@ export const authApi = {
     const response = await api.put('/profile/employer', data);
     return response.data;
   },
+
+  // Admin login
+  adminLogin: async (email: string, password: string) => {
+    const response = await api.post('/admin/login', { email, password });
+    return response.data;
+  },
 };
 
 // Error handler helper

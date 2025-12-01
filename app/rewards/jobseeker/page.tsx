@@ -334,38 +334,7 @@ export default function JobSeekerRewardsPage() {
           </CardContent>
         </Card>
 
-        {/* Redeemable Rewards */}
-        <Card className="card-shadow border-0 mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <Gift className="w-5 h-5 mr-2 text-emerald-600" />
-              Redeem Your Points
-            </CardTitle>
-            <CardDescription>Use your points for exclusive benefits</CardDescription>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-6">
-            <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100">
-              <h3 className="font-semibold mb-1">Resume Building Discounts</h3>
-              <p className="text-gray-600 text-sm mb-2">Get professional help to craft your resume at a discounted rate.</p>
-              <Badge className="bg-emerald-100 text-emerald-800">Available</Badge>
-            </div>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <h3 className="font-semibold mb-1">Visa Consultation Discounts</h3>
-              <p className="text-gray-600 text-sm mb-2">Redeem points for discounts on expert visa consultation services.</p>
-              <Badge className="bg-blue-100 text-blue-800">Available</Badge>
-            </div>
-            <div className="p-4 bg-pink-50 rounded-lg border border-pink-100">
-              <h3 className="font-semibold mb-1">Mobility Assistance</h3>
-              <p className="text-gray-600 text-sm mb-2">Use your points for help with relocation and mobility support.</p>
-              <Badge className="bg-pink-100 text-pink-800">Available</Badge>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
-              <h3 className="font-semibold mb-1">Premium Membership Upgrades</h3>
-              <p className="text-gray-600 text-sm mb-2">Upgrade to premium tiers and unlock more features.</p>
-              <Badge className="bg-purple-100 text-purple-800">Available</Badge>
-            </div>
-          </CardContent>
-        </Card>
+       
 
         {/* Membership Tiers */}
         <Card className="card-shadow border-0">

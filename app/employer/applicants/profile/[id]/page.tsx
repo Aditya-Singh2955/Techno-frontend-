@@ -128,6 +128,15 @@ interface ApplicantData {
   rating?: number;
 }
 
+// Get today's date in YYYY-MM-DD format (local timezone)
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function ApplicantProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -374,14 +383,37 @@ export default function ApplicantProfilePage() {
   const scheduleInterview = async () => {
     if (!applicantData) return;
 
+    // Validate date and time
+    if (!interviewDetails.date || !interviewDetails.time) {
+      toast({
+        title: "Validation Error",
+        description: "Please select both date and time for the interview.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const interviewDateTime = new Date(`${interviewDetails.date}T${interviewDetails.time}`);
+    const now = new Date();
+
+    // Check if interview date/time is in the past
+    if (interviewDateTime <= now) {
+      toast({
+        title: "Invalid Date/Time",
+        description: "Interview date and time must be in the future. Please select a future date and time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
-      const interviewDateTime = `${interviewDetails.date}T${interviewDetails.time}`;
+      const interviewDateTimeStr = `${interviewDetails.date}T${interviewDetails.time}`;
       
       await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicantData._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
-        interviewDate: interviewDateTime,
+        interviewDate: interviewDateTimeStr,
         interviewMode: interviewDetails.mode
       }, {
         headers: {
@@ -1039,6 +1071,7 @@ export default function ApplicantProfilePage() {
                 value={interviewDetails.date}
                 onChange={(e) => setInterviewDetails(prev => ({...prev, date: e.target.value}))}
                 className="col-span-3"
+                min={getTodayDateString()}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">

@@ -844,8 +844,16 @@ export default function JobSeekerProfilePage() {
                     <Input
                       id="phone"
                       value={profileData.personalInfo.phone}
-                      onChange={(e) => handleInputChange("personalInfo", "phone", e.target.value)}
+                      onChange={(e) => {                    
+                        const value = e.target.value;
+                        const filteredValue = value.replace(/[^0-9+]/g, '');
+                        const validValue = filteredValue.includes('+') 
+                          ? '+' + filteredValue.replace(/\+/g, '').replace(/[^0-9]/g, '')
+                          : filteredValue;
+                        handleInputChange("personalInfo", "phone", validValue);
+                      }}
                       className="pl-10"
+                      placeholder="+1234567890"
                     />
                   </div>
                 </div>

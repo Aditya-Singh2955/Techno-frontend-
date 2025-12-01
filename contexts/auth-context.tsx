@@ -106,33 +106,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       setError(null)
       
-      // Handle admin login with mock data (since backend doesn't support admin yet)
+      // Handle admin login with real API
       if (type === "admin") {
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        
-        // Check if email contains admin or if it's a specific admin email
-        const isAdmin = /admin/i.test(email) || email === "admin@findr.com"
-        
-        if (!isAdmin) {
-          setError("Invalid admin credentials")
+        try {
+          const response = await authApi.adminLogin(email, password)
+          
+          if (response.success && response.user) {
+            const adminUser: User = {
+              id: response.user.id,
+              email: response.user.email,
+              type: "admin",
+              name: response.user.name || "Admin User",
+              profileImage: "/images/admin-hero.png",
+              role: response.user.role || "admin",
+            }
+
+            setUser(adminUser)
+            localStorage.setItem("findr_user", JSON.stringify(adminUser))
+            localStorage.setItem("findr_token", response.token)
+            
+            return true
+          } else {
+            setError(response.message || "Invalid admin credentials")
+            return false
+          }
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || error.message || "Failed to login as admin"
+          setError(errorMessage)
           return false
         }
-        
-        const mockAdminUser: User = {
-          id: "admin-1",
-          email,
-          type: "admin",
-          name: "Admin User",
-          profileImage: "/images/admin-hero.png",
-          role: "admin",
-        }
-
-        setUser(mockAdminUser)
-        localStorage.setItem("findr_user", JSON.stringify(mockAdminUser))
-        localStorage.setItem("findr_token", "mock-admin-token")
-        
-        return true
       }
       
       // Regular login for jobseeker/employer

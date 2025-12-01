@@ -23,7 +23,7 @@ export default function AdminLoginPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
+  const { login, error } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -39,11 +39,18 @@ export default function AdminLoginPage() {
           description: "Welcome back! Redirecting to admin dashboard...",
         })
         router.push("/admin")
+      } else {
+        // Show error from auth context
+        toast({
+          title: "Login Failed",
+          description: error || "Please check your credentials and try again.",
+          variant: "destructive",
+        })
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: "Please check your credentials and try again.",
+        description: error?.message || "Please check your credentials and try again.",
         variant: "destructive",
       })
     } finally {
