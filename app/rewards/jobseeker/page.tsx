@@ -105,12 +105,20 @@ export default function JobSeekerRewardsPage() {
     if (profile?.skills && profile.skills.length > 0) completed++;
     if (profile?.jobPreferences?.preferredJobType && profile.jobPreferences.preferredJobType.length > 0) completed++;
     if (profile?.certifications && profile.certifications.length > 0) completed++;
-    if (profile?.jobPreferences?.resumeAndDocs && profile.jobPreferences.resumeAndDocs.length > 0) completed++;
+    // Check resume in multiple possible locations (matching backend logic)
+    const hasResume = !!(profile?.resumeDocument && profile.resumeDocument.trim() !== '') ||
+                     !!(profile?.resumeUrl && profile.resumeUrl.trim() !== '') ||
+                     !!(profile?.resume && (typeof profile.resume === 'string' ? profile.resume.trim() !== '' : profile.resume)) ||
+                     !!(profile?.jobPreferences?.resumeAndDocs && profile.jobPreferences.resumeAndDocs.length > 0) ||
+                     !!(profile?.documents && profile.documents.length > 0 && profile.documents.some((doc: any) => 
+                       doc.type === 'resume' || doc.name?.toLowerCase().includes('resume') || doc.name?.toLowerCase().includes('cv')
+                     ));
+    if (hasResume) completed++;
 
-    // Social Links (3 fields)
-    if (profile?.socialLinks?.linkedIn) completed++;
+    // Social Links (3 fields) - check both uppercase and lowercase versions
+    if (profile?.socialLinks?.linkedIn || profile?.socialLinks?.linkedin) completed++;
     if (profile?.socialLinks?.instagram) completed++;
-    if (profile?.socialLinks?.twitterX) completed++;
+    if (profile?.socialLinks?.twitterX || profile?.socialLinks?.twitter) completed++;
 
     const percentage = Math.round((completed / totalFields) * 100);
     const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
@@ -163,23 +171,28 @@ export default function JobSeekerRewardsPage() {
       const data = await response.json();
       setUserProfile(data.data);
       
-      // Prefer server points when present
-      const apiPoints = (typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? null));
       const deducted = data.data?.deductedPoints || 0;
       const metrics = calculateProfileMetrics(data.data);
       setProfileCompletion(metrics.percentage);
-      setUserPoints(apiPoints !== null ? Math.max(0, apiPoints - deducted) : metrics.points);
       
-      // Calculate referral and activity points
+      // Calculate activity points from individual components
+      // Activity points = Profile completion + Application points + RM service + Social media bonus
       const referralRewardPoints = data.data.referralRewardPoints || 0;
-      const basePoints = (apiPoints !== null ? Math.max(0, apiPoints - deducted) : metrics.points);
-      const activityRewardPoints = basePoints - referralRewardPoints;
+      const profileCompletionPoints = 50 + metrics.percentage * 2; // Base 50 + 2 points per percentage
+      const applicationPoints = data.data?.rewards?.applyForJobs || 0;
+      const rmServicePoints = data.data?.rewards?.rmService || 0;
+      const socialMediaBonus = data.data?.rewards?.socialMediaBonus || 0;
+      const activityRewardPoints = profileCompletionPoints + applicationPoints + rmServicePoints + socialMediaBonus;
+      
+      // Calculate total points: Activity Points + Referral Points - Deducted Points
+      const totalPoints = Math.max(0, activityRewardPoints + referralRewardPoints - deducted);
       
       setReferralPoints(referralRewardPoints);
-      setActivityPoints(Math.max(0, activityRewardPoints));
+      setActivityPoints(activityRewardPoints);
+      setUserPoints(totalPoints);
       
       // Determine tier
-      const tier = determineUserTier(data.data, (apiPoints !== null ? Math.max(0, apiPoints - deducted) : metrics.points));
+      const tier = determineUserTier(data.data, totalPoints);
       setUserTier(tier);
       
     } catch (error) {
