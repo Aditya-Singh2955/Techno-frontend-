@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -91,6 +91,24 @@ export default function PaymentSuccessPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-mint-50 to-white flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4 lg:p-8">
+          <Card className="w-full max-w-lg rounded-2xl shadow-lg bg-white flex flex-col items-center p-10">
+            <Loader2 className="w-20 h-20 text-emerald-500 mb-6 animate-spin" />
+            <h1 className="text-2xl font-bold mb-2 text-center">Loading...</h1>
+          </Card>
+        </main>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }
 

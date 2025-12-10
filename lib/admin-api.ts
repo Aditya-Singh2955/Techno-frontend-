@@ -462,56 +462,49 @@ export const getUserStatus = async (userId: string, userType: 'jobseeker' | 'emp
   return Math.random() > 0.5 ? 'active' : 'blocked';
 };
 
-// Example backend API endpoints that would be implemented:
-/*
-// GET /api/admin/users/jobseekers
-export const getJobseekers = async (): Promise<Jobseeker[]> => {
-  const response = await fetch('/api/admin/users/jobseekers');
-  return response.json();
-};
-
-// GET /api/admin/users/employers  
-export const getEmployers = async (): Promise<Employer[]> => {
-  const response = await fetch('/api/admin/users/employers');
-  return response.json();
-};
-
-// PATCH /api/admin/users/:userId/status
-export const updateUserStatus = async (userId: string, status: 'active' | 'blocked'): Promise<boolean> => {
-  const response = await fetch(`/api/admin/users/${userId}/status`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ status }),
-  });
-  return response.ok;
-};
-
 // Get individual user by ID
 export const getJobseekerById = async (id: string): Promise<Jobseeker> => {
-  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/jobseeker/${id}`, {
-    headers: getAuthHeaders(),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch jobseeker details');
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users/jobseeker/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch jobseeker details');
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching jobseeker by ID:', error);
+    throw error;
   }
-  
-  const result = await response.json();
-  return result.data;
 };
 
 export const getEmployerById = async (id: string): Promise<Employer> => {
-  const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/users/employer/${id}`, {
-    headers: getAuthHeaders(),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch employer details');
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users/employer/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch employer details');
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching employer by ID:', error);
+    throw error;
   }
-  
-  const result = await response.json();
-  return result.data;
 };
-*/
