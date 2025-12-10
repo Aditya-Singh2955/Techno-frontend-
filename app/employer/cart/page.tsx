@@ -52,7 +52,7 @@ export default function EmployerCartPage() {
       }
 
       // Send one quote request per selected service (aligns with single-service API)
-      await Promise.all(
+      const results = await Promise.allSettled(
         cart.map(async (item) => {
           const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/quotes', {
             method: 'POST',
@@ -71,18 +71,48 @@ export default function EmployerCartPage() {
             const errorData = await response.json();
             throw new Error(errorData.message || `Failed to submit quote for ${item.title}`);
           }
+          return { item: item.title, success: true };
         })
       );
 
-      toast({
-        title: "Your quote request has been submitted.",
-        description: "Our team will contact you shortly.",
-      });
-      router.push("/employer/cart/in-progress");
-    } catch (error) {
+      // Check for failures
+      const failures = results.filter((result) => result.status === 'rejected');
+      const successes = results.filter((result) => result.status === 'fulfilled');
+
+      if (failures.length > 0) {
+        const errorMessages = failures.map((failure: any) => {
+          const reason = failure.reason?.message || 'Unknown error';
+          return reason;
+        }).join('; ');
+
+        toast({
+          title: "Some requests failed",
+          description: errorMessages,
+          variant: "destructive",
+        });
+      }
+
+      if (successes.length > 0) {
+        toast({
+          title: `${successes.length} quote request(s) submitted successfully.`,
+          description: failures.length > 0 ? "Some services already have pending quotations." : "Our team will contact you shortly.",
+        });
+        
+        if (failures.length === 0) {
+          router.push("/employer/cart/in-progress");
+        }
+      } else {
+        toast({
+          title: "Request Failed",
+          description: "All quote requests failed. Please check if you've already requested quotations for these services.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to submit quote request. Please try again.';
       toast({
         title: "Request Failed",
-        description: "Failed to submit quote request. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

@@ -215,61 +215,40 @@ export default function CartPage() {
         return
       }
 
-      const orderData = {
-        service: "Virtual RM Service",
-        price: AED_PRICE,
-        pointsUsed: typeof rewardPoints === "number" ? rewardPoints : 0,
-        couponCode: coupon,
-        totalAmount: total
-      }
+      const pointsUsed = typeof rewardPoints === "number" ? rewardPoints : 0
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/orders', {
+      // Call Stripe checkout endpoint instead of order API
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/rm-service/checkout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({
+          pointsUsed: pointsUsed,
+          totalAmount: total
+        })
       })
 
-      const rawBody = await response.text()
-      let parsedBody: any = null
-      try {
-        parsedBody = rawBody ? JSON.parse(rawBody) : null
-      } catch {
-        parsedBody = null
-      }
+      const data = await response.json()
 
       if (!response.ok) {
-        const errMessage = parsedBody?.message || rawBody || 'Failed to place order'
-        throw new Error(typeof errMessage === 'string' ? errMessage : 'Failed to place order')
+        throw new Error(data.error || data.message || 'Failed to create checkout session')
       }
 
-      if (!parsedBody) {
-        throw new Error('Unexpected server response. Please try again later.')
+      if (data.success && data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
       }
-
-      const data = parsedBody
-      
-      // Update local points state
-      setUserPoints(data.data.remainingPoints)
-      setRewardPoints("") // Reset points input to empty
-      
-      toast({
-        title: "Order Placed Successfully!",
-        description: "Your RM Service has been activated.",
-      })
-      
-      // Redirect to dashboard or payment page
-      setTimeout(() => router.push("/jobseeker/dashboard"), 1000)
     } catch (error: any) {
-      console.error('Order error:', error)
+      console.error('Stripe checkout error:', error)
       toast({
-        title: "Order Failed",
-        description: error.message || "Failed to place order. Please try again.",
+        title: "Checkout Failed",
+        description: error.message || "Failed to proceed to checkout. Please try again.",
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
     }
   }

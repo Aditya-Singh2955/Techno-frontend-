@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Briefcase, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { normalizeUAE } from "@/lib/utils"
 
 export default function EmployerSignupPage() {
   const [formData, setFormData] = useState({
@@ -63,6 +64,18 @@ export default function EmployerSignupPage() {
       return
     }
 
+    // Phone number validation - UAE phone numbers only
+    const normalizedPhone = normalizeUAE(formData.phone)
+    
+    if (!normalizedPhone) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid UAE mobile number. Formats: +971 50 123 4567 or 050 123 4567",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!formData.designation.trim()) {
       toast({
         title: "Designation Required",
@@ -107,7 +120,7 @@ export default function EmployerSignupPage() {
         password: formData.password,
         role: "employer",
         name: formData.companyName,
-        phoneNumber: formData.phone,
+        phoneNumber: normalizedPhone,
         designation: formData.designation
       })
 
@@ -189,10 +202,19 @@ export default function EmployerSignupPage() {
                   name="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Enter your phone number"
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/[^0-9+\s-]/g, '')
+                    // Limit to 15 characters max (accounts for +971 50 123 4567 format)
+                    if (value.length > 15) value = value.slice(0, 15)
+                    setFormData((prev) => ({ ...prev, phone: value }))
+                  }}
+                  placeholder="+971 50 123 4567 or 050 123 4567"
+                  maxLength={15}
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  UAE mobile numbers only. Formats: +971 50 123 4567 or 050 123 4567
+                </p>
               </div>
 
               <div className="space-y-2">

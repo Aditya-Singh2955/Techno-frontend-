@@ -895,7 +895,7 @@ import {
   User,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { TOP_200_COMPANIES } from "@/lib/utils"
+import { TOP_200_COMPANIES, normalizeUAE } from "@/lib/utils"
 import { FollowUs } from "@/components/follow-us"
 import { FileUpload } from "@/components/file-upload"
 import { useAuth } from "@/contexts/auth-context"
@@ -1284,6 +1284,24 @@ export default function EmployerProfilePage() {
 
   const handleSave = async () => {
     try {
+      // Phone number validation - UAE phone numbers only
+      const phone = profileData.companyInfo.phone?.trim() || '';
+      if (phone) {
+        const normalizedPhone = normalizeUAE(phone);
+        
+        if (!normalizedPhone) {
+          toast({
+            title: "Invalid phone number",
+            description: "Please enter a valid UAE mobile number. Formats: +971 50 123 4567 or 050 123 4567",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Update the phone number with normalized value
+        profileData.companyInfo.phone = normalizedPhone;
+      }
+
       setSaving(true)
       const updateData = {
         companyName: profileData.companyInfo.companyName,
@@ -1480,38 +1498,19 @@ export default function EmployerProfilePage() {
                       type="tel"
                       value={profileData.companyInfo.phone}
                       onChange={(e) => {
-                        // Allow only + and numbers
-                        const value = e.target.value.replace(/[^+0-9]/g, '')
-                        handleInputChange("companyInfo", "phone", value)
+                        let value = e.target.value.replace(/[^0-9+\s-]/g, '');
+                        // Limit to 15 characters max (accounts for +971 50 123 4567 format)
+                        if (value.length > 15) value = value.slice(0, 15);
+                        handleInputChange("companyInfo", "phone", value);
                       }}
-                      onKeyDown={(e) => {
-                        // Prevent typing if it's not a number, +, or allowed keys (backspace, delete, arrow keys, etc.)
-                        const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End']
-                        const isNumber = e.key >= '0' && e.key <= '9'
-                        const isPlus = e.key === '+'
-                        const isAllowedKey = allowedKeys.includes(e.key)
-                        const isCtrlCmd = e.ctrlKey || e.metaKey
-                        
-                        // Allow Ctrl/Cmd + A, C, V, X for select all, copy, paste, cut
-                        if (isCtrlCmd && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) {
-                          return
-                        }
-                        
-                        // Block if it's not a number, plus, or allowed key
-                        if (!isNumber && !isPlus && !isAllowedKey) {
-                          e.preventDefault()
-                        }
-                      }}
-                      onPaste={(e) => {
-                        // Clean pasted content to only allow + and numbers
-                        e.preventDefault()
-                        const pastedText = e.clipboardData.getData('text')
-                        const cleanedText = pastedText.replace(/[^+0-9]/g, '')
-                        handleInputChange("companyInfo", "phone", cleanedText)
-                      }}
+                      placeholder="+971 50 123 4567 or 050 123 4567"
                       className="pl-10"
+                      maxLength={15}
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    UAE mobile numbers only. Formats: +971 50 123 4567 or 050 123 4567
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="website">Website</Label>

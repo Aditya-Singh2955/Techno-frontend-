@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
 import { useAuth } from "@/contexts/auth-context"
 import { FollowUs } from "@/components/follow-us"
+import { normalizeUAE } from "@/lib/utils"
 
 const API_BASE_URL = "https://techno-backend-a0s0.onrender.com"
 
@@ -350,6 +351,25 @@ export default function JobSeekerProfilePage() {
         });
         setIsSaving(false);
         return;
+      }
+
+      // Phone number validation - UAE phone numbers only
+      const phone = profileData.personalInfo.phone?.trim() || '';
+      if (phone) {
+        const normalizedPhone = normalizeUAE(phone);
+        
+        if (!normalizedPhone) {
+          toast({
+            title: "Invalid phone number",
+            description: "Please enter a valid UAE mobile number. Formats: +971 50 123 4567 or 050 123 4567",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        
+        // Update the phone number with normalized value
+        profileData.personalInfo.phone = normalizedPhone;
       }
 
       // Map local state to API format (matching your backend controller)
@@ -844,18 +864,20 @@ export default function JobSeekerProfilePage() {
                     <Input
                       id="phone"
                       value={profileData.personalInfo.phone}
-                      onChange={(e) => {                    
-                        const value = e.target.value;
-                        const filteredValue = value.replace(/[^0-9+]/g, '');
-                        const validValue = filteredValue.includes('+') 
-                          ? '+' + filteredValue.replace(/\+/g, '').replace(/[^0-9]/g, '')
-                          : filteredValue;
-                        handleInputChange("personalInfo", "phone", validValue);
+                      onChange={(e) => {
+                        let value = e.target.value.replace(/[^0-9+\s-]/g, '');
+                        // Limit to 15 characters max (accounts for +971 50 123 4567 format)
+                        if (value.length > 15) value = value.slice(0, 15);
+                        handleInputChange("personalInfo", "phone", value);
                       }}
                       className="pl-10"
-                      placeholder="+1234567890"
+                      placeholder="+971 50 123 4567 or 050 123 4567"
+                      maxLength={15}
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    UAE mobile numbers only. Formats: +971 50 123 4567 or 050 123 4567
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="location">Location *</Label>

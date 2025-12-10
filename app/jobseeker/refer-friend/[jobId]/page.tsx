@@ -15,6 +15,7 @@ import { ArrowLeft, Upload, Loader2, CheckCircle, XCircle, User, Mail, Phone, Ca
 import Link from "next/link"
 import axios from "axios"
 import { FileUpload } from "@/components/file-upload"
+import { normalizeUAE } from "@/lib/utils"
 
 interface Job {
   _id: string;
@@ -196,9 +197,6 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
               'bachelor of science': "Bachelor's",
               'bachelor of commerce': "Bachelor's",
               'bachelor of arts': "Bachelor's",
-              'btech': "Bachelor's",
-              'b.tech': "Bachelor's",
-              'b.tech.': "Bachelor's",
               "master's": "Master's",
               "master's degree": "Master's",
               'master': "Master's",
@@ -390,6 +388,17 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
       return false
     }
 
+    // Phone number validation - UAE phone numbers only
+    const normalizedPhone = normalizeUAE(formData.phone)
+    if (!normalizedPhone) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid UAE mobile number. Formats: +971 50 123 4567 or 050 123 4567",
+        variant: "destructive",
+      })
+      return false
+    }
+
     return true
   }
 
@@ -436,12 +445,24 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
         return
       }
 
+      // Normalize phone number before submission
+      const normalizedPhone = normalizeUAE(formData.phone)
+      if (!normalizedPhone) {
+        toast({
+          title: "Invalid phone number",
+          description: "Please enter a valid UAE mobile number. Formats: +971 50 123 4567 or 050 123 4567",
+          variant: "destructive",
+        })
+        setIsSubmitting(false)
+        return
+      }
+
       // Submit referral application to backend
       const response = await axios.post('https://techno-backend-a0s0.onrender.com/api/v1/applications/referral', {
         jobId,
         friendName: formData.friendName,
         email: formData.email,
-        phone: formData.phone,
+        phone: normalizedPhone,
         dateOfBirth: formData.dateOfBirth,
         nationality: formData.nationality,
         currentCompany: formData.currentCompany,
@@ -617,11 +638,14 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
                         value={formData.phone}
                         onChange={(e) => {
                           // Only allow numbers and + character
-                          const value = e.target.value.replace(/[^0-9+]/g, '')
+                          let value = e.target.value.replace(/[^0-9+]/g, '')
+                          // Limit to 15 characters max (accounts for +971501234567 format)
+                          if (value.length > 15) value = value.slice(0, 15)
                           handleInputChange('phone', value)
                         }}
                         placeholder="+971 50 123 4567"
                         className={`pl-10 ${isViewMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                        maxLength={15}
                         required
                         disabled={isViewMode}
                       />

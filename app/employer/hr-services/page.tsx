@@ -113,10 +113,11 @@ export default function HRServicesPage() {
         description: `Service: ${service.title}`,
       })
       
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to submit quote request. Please try again.'
       toast({
         title: "Request Failed",
-        description: "Failed to submit quote request. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
