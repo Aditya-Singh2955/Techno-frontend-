@@ -102,6 +102,62 @@ export default function AdminUserDetailPage() {
       ? firstEducation.yearOfGraduation.toString() 
       : "N/A";
 
+    // Calculate tier dynamically (same logic as dashboard and profile pages)
+    const calculateTier = () => {
+      // Calculate profile completion points
+      let completed = 0;
+      const totalFields = 24;
+      
+      if (userData.fullName) completed++;
+      if (userData.email) completed++;
+      if (userData.phoneNumber) completed++;
+      if (userData.location) completed++;
+      if (userData.dateOfBirth) completed++;
+      if (userData.nationality) completed++;
+      if (userData.professionalSummary) completed++;
+      if (userData.emirateId) completed++;
+      if (userData.passportNumber) completed++;
+      
+      if (firstExperience.currentRole) completed++;
+      if (firstExperience.company) completed++;
+      if (firstExperience.yearsOfExperience) completed++;
+      if (firstExperience.industry) completed++;
+      
+      if (firstEducation.highestDegree) completed++;
+      if (firstEducation.institution) completed++;
+      if (firstEducation.yearOfGraduation) completed++;
+      if (firstEducation.gradeCgpa) completed++;
+      
+      if (userData.skills && userData.skills.length > 0) completed++;
+      if (jobPrefs.preferredJobType && jobPrefs.preferredJobType.length > 0) completed++;
+      if (userData.certifications && userData.certifications.length > 0) completed++;
+      if (jobPrefs.resumeAndDocs && jobPrefs.resumeAndDocs.length > 0) completed++;
+      if (userData.socialLinks?.linkedIn) completed++;
+      if (userData.socialLinks?.instagram) completed++;
+      if (userData.socialLinks?.twitterX) completed++;
+      
+      const percentage = Math.min(Math.round((completed / totalFields) * 100), 100);
+      const profileCompletionPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage
+      const applicationPoints = userData.rewards?.applyForJobs || 0;
+      const rmServicePoints = userData.rewards?.rmService || 0;
+      const deductedPoints = userData.deductedPoints || 0;
+      const totalPoints = profileCompletionPoints + applicationPoints + rmServicePoints;
+      const availablePoints = Math.max(0, totalPoints - deductedPoints);
+      
+      // Get experience and other tier factors
+      const yearsExp = firstExperience.yearsOfExperience || 0;
+      const isEmirati = userData.nationality?.toLowerCase().includes("emirati");
+      const hasEmploymentVisa = userData.employmentVisa === "yes";
+      const hasEmiratesId = !!userData.emirateId;
+      
+      // Determine tier using same logic as dashboard
+      if (availablePoints >= 500) return "Platinum";
+      else if (isEmirati || yearsExp >= 10) return "Gold";
+      else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) return "Silver";
+      else if (yearsExp <= 4 || hasEmploymentVisa) return "Blue";
+      else return "Silver";
+    };
+
     const candidate = {
       name: userData.fullName || userData.name || "N/A",
       email: userData.email || "N/A",
@@ -131,7 +187,7 @@ export default function AdminUserDetailPage() {
       coverLetter: allDocuments.length > 1 ? allDocuments[1].split('/').pop() || "Cover Letter.pdf" : "N/A",
       documentsList: allDocuments.slice(2).map((doc: string) => doc.split('/').pop() || "Document.pdf"),
       rating: userData.rating || 0,
-      tier: userData.membershipTier || "Blue",
+      tier: calculateTier(),
     }
     
     // Additional admin data

@@ -144,6 +144,30 @@ export default function ServiceManagementPage() {
   const activeCount = services.filter(s => s.status === 'active' || s.status === 'in_progress' || s.status === 'completed').length
   const stoppedCount = services.filter(s => s.status === 'stopped' || s.status === 'suspended').length
 
+  const formatTitleCase = (str: string) => {
+    if (!str || typeof str !== 'string') return str;
+
+    const lowercaseWords = [
+      'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'nor',
+      'of', 'on', 'or', 'the', 'to', 'with'
+    ];
+    
+    return str
+      .split(' ')
+      .map((word, index) => {
+        if (word === word.toUpperCase() && word.length > 1) {
+          return word;
+        }
+        const lowerWord = word.toLowerCase();
+        if (index > 0 && lowercaseWords.includes(lowerWord)) {
+          return lowerWord;
+        }
+
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
@@ -295,7 +319,7 @@ export default function ServiceManagementPage() {
                           </div>
                         </div>
                         {service.description && (
-                          <p className="text-sm text-gray-600">{service.description}</p>
+                          <p className="text-sm text-gray-600">{formatTitleCase(service.description)}</p>
                         )}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2">
