@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/services", label: "Services & Orders", icon: FileText },
   { href: "/admin/service-management", label: "Service Management", icon: Settings },
   { href: "/admin/quotation", label: "Quotation", icon: FileCheck },
+  { href: "/admin/grievances", label: "Grievances", icon: FileText },
 ]
 
 export function AdminSidebar() {

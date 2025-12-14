@@ -282,11 +282,11 @@ export default function HRServicesPage() {
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <Phone className="w-5 h-5" />
-                    <span>+971 4 123 4567</span>
+                    <span>+971 54 551 5125</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <Mail className="w-5 h-5" />
-                    <span>hr-services@findr.ae</span>
+                    <span>contact@findr.ae</span>
                   </div>
                 </div>
               </div>

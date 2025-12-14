@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Menu, X, ChevronDown, User, Briefcase, ShoppingCart, Heart, Shield } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/contexts/cart-context"
@@ -14,7 +15,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const { user, logout, isLoading } = useAuth()
-  const { clearCart } = useCart()
+  const { cart, clearCart } = useCart()
 
   
 
@@ -157,8 +158,13 @@ export function Navbar() {
             ) : user ? (
               <div className="flex items-center space-x-2">
                 {/* Cart Icon */}
-                <Link href={user.type === "jobseeker" ? "/jobseeker/cart" : "/employer/cart"} className="mr-2 flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors">
+                <Link href={user.type === "jobseeker" ? "/jobseeker/cart" : "/employer/cart"} className="mr-2 relative flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors">
                   <ShoppingCart className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
+                  {cart.length > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-emerald-600 text-white border-emerald-600">
+                      {cart.length}
+                    </Badge>
+                  )}
                 </Link>
                 {/* Saved Jobs Heart Icon (Jobseeker only) */}
                 {user.type === "jobseeker" && (

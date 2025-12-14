@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import axios from "axios"
 import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,16 +27,50 @@ export default function ContactPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
 
-    toast({
-      title: "Message Sent Successfully!",
-      description: "Thank you for contacting us. We'll get back to you within 24 hours.",
-    })
+      const config: any = {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
 
-    setFormData({ name: "", email: "", subject: "", message: "" })
-    setIsSubmitting(false)
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`
+      }
+
+      const response = await axios.post(
+        'https://techno-backend-a0s0.onrender.com/api/v1/contact',
+        {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message
+        },
+        config
+      )
+
+      if (response.data.success) {
+        toast({
+          title: "Message Sent Successfully!",
+          description: response.data.message || "Thank you for contacting us. We'll get back to you within 24 hours.",
+        })
+
+        setFormData({ name: "", email: "", subject: "", message: "" })
+      } else {
+        throw new Error(response.data.message || "Failed to send message")
+      }
+    } catch (error: any) {
+      console.error('Error submitting contact form:', error)
+      toast({
+        title: "Failed to Send Message",
+        description: error.response?.data?.message || error.message || "Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -76,9 +111,9 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold mb-1">Office Address</h3>
                     <p className="text-gray-600 text-sm">
-                      Business Bay, Dubai
+                      Office R40.10/2-22, Burjuman Metro Stn,
                       <br />
-                      United Arab Emirates
+                      Al Hamriya, Bur Dubai, Dubai
                     </p>
                   </div>
                 </div>
@@ -89,7 +124,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Phone</h3>
-                    <p className="text-gray-600 text-sm">+971 4 XXX XXXX</p>
+                    <p className="text-gray-600 text-sm">+971 54 551 5125</p>
                   </div>
                 </div>
 
@@ -99,7 +134,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
-                    <p className="text-gray-600 text-sm">hello@findr.ae</p>
+                    <p className="text-gray-600 text-sm">contact@findr.ae</p>
                   </div>
                 </div>
 

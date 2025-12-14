@@ -79,13 +79,17 @@ export default function AdminServicesPage() {
 
       const data = await response.json();
       if (data.success) {
-        setServices(data.data);
+        const sortedServices = (data.data || []).sort((a: ServiceData, b: ServiceData) => {
+          const dateA = new Date(a.orderDate).getTime();
+          const dateB = new Date(b.orderDate).getTime();
+          return dateB - dateA;
+        });
+        setServices(sortedServices);
         setTotalServices(data.pagination.totalCount);
       } else {
         throw new Error(data.message || 'Failed to fetch services');
       }
 
-      // Also fetch global totals for All, Jobseeker, Employer (persistent header stats)
       try {
         const [allResp, jsResp, empResp] = await Promise.all([
           fetch(`${API_BASE_URL}/admin/services?page=1&limit=1&buyerType=all`, { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }),

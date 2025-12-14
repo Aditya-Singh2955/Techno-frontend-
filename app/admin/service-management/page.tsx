@@ -294,7 +294,9 @@ export default function ServiceManagementPage() {
                             <span className="font-medium text-green-600 ml-2">${service.amount}</span>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600">{service.description}</p>
+                        {service.description && (
+                          <p className="text-sm text-gray-600">{service.description}</p>
+                        )}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2">
                         {isActive && (
