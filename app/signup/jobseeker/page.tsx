@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { normalizeUAE } from "@/lib/utils"
 
-export default function JobSeekerSignupPage() {
+function JobSeekerSignupForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -321,5 +321,20 @@ export default function JobSeekerSignupPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function JobSeekerSignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <JobSeekerSignupForm />
+    </Suspense>
   )
 }
