@@ -50,7 +50,7 @@ export default function PremiumServicesPage() {
           return
         }
 
-        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+        const response = await fetch('https://technozis.up.railway.app/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

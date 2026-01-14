@@ -47,7 +47,7 @@ export default function ServiceManagementPage() {
   const fetchServices = async () => {
     try {
       setLoading(true)
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1'
       
       // Fetch all services (we'll filter by status on frontend)
       const response = await fetch(`${API_BASE_URL}/admin/services?page=1&limit=100&buyerType=all`, {
@@ -83,7 +83,7 @@ export default function ServiceManagementPage() {
     try {
       setUpdatingIds(prev => new Set(prev).add(serviceId))
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1'
       const response = await fetch(`${API_BASE_URL}/admin/service-management/${serviceId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),

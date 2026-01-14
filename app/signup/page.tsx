@@ -237,8 +237,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -250,7 +250,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, Briefcase, Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-const API_BASE_URL = "https://techno-backend-a0s0.onrender.com/api/v1"
+const API_BASE_URL = "https://technozis.up.railway.app/api/v1"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -259,6 +259,7 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
     accountType: "",
+    referralCode: "",
     agreeToTerms: false,
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -266,6 +267,21 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const refCode = searchParams?.get('ref');
+    if (refCode) {
+      setFormData((prev) => ({
+        ...prev,
+        referralCode: decodeURIComponent(refCode).toUpperCase(),
+      }));
+      toast({
+        title: "Referral Code Applied",
+        description: "Your referral code has been automatically filled!",
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -307,6 +323,7 @@ export default function SignupPage() {
         password: formData.password,
         role: formData.accountType, // "jobseeker" or "employer"
         name: formData.name,
+        ...(formData.referralCode && { referralCode: formData.referralCode.trim().toUpperCase() }),
       }
 
       const response = await fetch(`${API_BASE_URL}/signup`, {
@@ -481,6 +498,20 @@ export default function SignupPage() {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+                <Input
+                  id="referralCode"
+                  name="referralCode"
+                  type="text"
+                  value={formData.referralCode}
+                  onChange={handleChange}
+                  placeholder="Enter referral code"
+                  className="h-11"
+                />
+                
               </div>
 
               <div className="flex items-center space-x-2">

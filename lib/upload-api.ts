@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app';
 
 export interface UploadedFile {
   url: string;

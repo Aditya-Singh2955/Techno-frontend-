@@ -22,7 +22,8 @@ import {
   Building,
   Check,
   X,
-  Video
+  Video,
+  Undo2
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -137,6 +138,19 @@ const getTodayDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeId = (id: string | undefined | null) => {
+  if (!id) return '';
+  return id.toString().trim().toLowerCase();
+};
+
+const statusOptions = [
+  { label: "Pending", value: "pending" },
+  { label: "Shortlisted", value: "shortlisted" },
+  { label: "Interview Scheduled", value: "interview_scheduled" },
+  { label: "Hired", value: "hired" },
+  { label: "Rejected", value: "rejected" },
+];
+
 export default function ApplicantProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -162,6 +176,8 @@ export default function ApplicantProfilePage() {
     interviewNotes: ""
   });
   const [existingReview, setExistingReview] = useState<any>(null);
+  const [statusHistory, setStatusHistory] = useState<Record<string, string>>({}); // Track previous statuses for undo
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchApplicantData = async () => {
@@ -180,7 +196,7 @@ export default function ApplicantProfilePage() {
         }
 
         // Fetch applicant data using the application ID - always fetch fresh data
-        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${idParam}`, {
+        const response = await axios.get(`https://technozis.up.railway.app/api/v1/applications/${idParam}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Cache-Control': 'no-cache',
@@ -224,7 +240,7 @@ export default function ApplicantProfilePage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/employer/reviews/application/${idParam}`, {
+      const response = await axios.get(`https://technozis.up.railway.app/api/v1/employer/reviews/application/${idParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -347,13 +363,31 @@ export default function ApplicantProfilePage() {
   };
 
   // Update application status
-  const updateApplicationStatus = async (newStatus: string) => {
+  const updateApplicationStatus = async (newStatus: string, previousStatus?: string) => {
     if (!applicantData) return;
 
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicantData._id}/status`, {
+      // Track previous status for undo BEFORE making the API call
+      let prevStatusToTrack: string | undefined = previousStatus;
+      if (!prevStatusToTrack && applicantData.status !== newStatus) {
+        prevStatusToTrack = applicantData.status;
+      }
+      
+      // Always track the previous status if we have it and it's different from new status
+      if (prevStatusToTrack && prevStatusToTrack !== newStatus) {
+        const normalizedId = normalizeId(applicantData._id);
+        setStatusHistory(prev => {
+          const updated: Record<string, string> = {
+            ...prev,
+            [normalizedId]: prevStatusToTrack!
+          };
+          return updated;
+        });
+      }
+      
+      await axios.patch(`https://technozis.up.railway.app/api/v1/applications/${applicantData._id}/status`, {
         status: newStatus
       }, {
         headers: {
@@ -369,13 +403,47 @@ export default function ApplicantProfilePage() {
       // Update local state
       setApplicantData(prev => prev ? {...prev, status: newStatus} : null);
       
-    } catch (error) {
+    } catch (error: any) {
+      // Remove from history if update failed using normalized ID
+      if (!previousStatus && applicantData) {
+        const normalizedId = normalizeId(applicantData._id);
+        setStatusHistory(prev => {
+          const newHistory = { ...prev };
+          // Try to find and delete by normalized ID
+          const keyToDelete = Object.keys(newHistory).find(key => 
+            normalizeId(key) === normalizedId
+          );
+          if (keyToDelete) {
+            delete newHistory[keyToDelete];
+          }
+          return newHistory;
+        });
+      }
       console.error('Error updating status:', error);
       toast({
         title: "Error",
-        description: "Failed to update application status.",
+        description: error.response?.data?.message || "Failed to update application status.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Open undo dialog
+  const openUndoDialog = () => {
+    setUndoDialogOpen(true);
+  };
+
+  // Undo status change with selected status
+  const undoStatusChange = async (newStatus: string) => {
+    if (!applicantData) return;
+    
+    try {
+      // Pass current status as previousStatus so it gets tracked for future undo
+      await updateApplicationStatus(newStatus, applicantData.status);
+      // Don't remove from history - keep it so user can undo again if needed
+      setUndoDialogOpen(false);
+    } catch (error) {
+      // Error handling is done in updateApplicationStatus
     }
   };
 
@@ -410,7 +478,16 @@ export default function ApplicantProfilePage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       const interviewDateTimeStr = `${interviewDetails.date}T${interviewDetails.time}`;
       
-      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicantData._id}/status`, {
+      // Track previous status for undo using normalized ID
+      if (applicantData) {
+        const normalizedId = normalizeId(applicantData._id);
+        setStatusHistory(prev => ({
+          ...prev,
+          [normalizedId]: applicantData.status
+        }));
+      }
+      
+      await axios.patch(`https://technozis.up.railway.app/api/v1/applications/${applicantData._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
         interviewDate: interviewDateTimeStr,
@@ -458,7 +535,7 @@ export default function ApplicantProfilePage() {
         interviewNotes: employerReview.interviewNotes
       };
 
-      await axios.post(`https://techno-backend-a0s0.onrender.com/api/v1/employer/reviews`, reviewData, {
+      await axios.post(`https://technozis.up.railway.app/api/v1/employer/reviews`, reviewData, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -987,6 +1064,16 @@ export default function ApplicantProfilePage() {
                </Badge>
              )}
              
+             {/* Undo Button - Available for all statuses */}
+             <Button
+               variant="outline"
+               className="text-orange-600 border-orange-300 hover:bg-orange-50 px-8 py-3"
+               onClick={openUndoDialog}
+             >
+               <Undo2 className="w-4 h-4 mr-2" />
+               Undo
+             </Button>
+             
              {/* Review Button - Available for all statuses */}
              <Button 
                onClick={() => setReviewDialogOpen(true)}
@@ -1273,6 +1360,58 @@ export default function ApplicantProfilePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setContactDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Undo Status Change Dialog */}
+      <Dialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Application Status</DialogTitle>
+            <DialogDescription>
+              Select the status you want to set for {applicantData?.applicantDetails?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Current Status: <span className="font-semibold">{formatStatus(applicantData?.status || '')}</span></Label>
+              {(() => {
+                // Use normalized ID to find previous status
+                const normalizedId = applicantData?._id ? normalizeId(applicantData._id) : '';
+                const historyKey = Object.keys(statusHistory).find(key => 
+                  normalizeId(key) === normalizedId
+                );
+                const previousStatus = historyKey ? statusHistory[historyKey] : undefined;
+                return previousStatus ? (
+                  <Label>Previous Status: <span className="font-semibold text-orange-600">{formatStatus(previousStatus)}</span></Label>
+                ) : null;
+              })()}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="undo-status">Select New Status</Label>
+              <Select onValueChange={(value) => undoStatusChange(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions
+                    .filter(opt => opt.value !== applicantData?.status)
+                    .map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setUndoDialogOpen(false);
+            }}>
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>

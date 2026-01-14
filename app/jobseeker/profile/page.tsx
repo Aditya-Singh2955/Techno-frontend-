@@ -34,7 +34,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { FollowUs } from "@/components/follow-us"
 import { normalizeUAE } from "@/lib/utils"
 
-const API_BASE_URL = "https://techno-backend-a0s0.onrender.com"
+const API_BASE_URL = "https://technozis.up.railway.app"
 
 interface ProfileData {
   personalInfo: {
@@ -48,6 +48,7 @@ interface ProfileData {
     emiratesId: string
     passportNumber: string
     employmentVisa: string
+    visaExpiryDate: string
   }
   experience: {
     currentRole: string
@@ -108,6 +109,7 @@ export default function JobSeekerProfilePage() {
       emiratesId: "",
       passportNumber: "",
       employmentVisa: "",
+      visaExpiryDate: "",
     },
     experience: {
       currentRole: "",
@@ -230,6 +232,8 @@ export default function JobSeekerProfilePage() {
             emiratesId: apiData.emirateId || "",
             passportNumber: apiData.passportNumber || "",
             employmentVisa: "", // Not provided by API, keep empty
+            visaExpiryDate: apiData.visaExpiryDate ? 
+              new Date(apiData.visaExpiryDate).toISOString().split('T')[0] : "",
           },
           experience: {
             currentRole: apiData.professionalExperience?.[0]?.currentRole || "",
@@ -372,7 +376,26 @@ export default function JobSeekerProfilePage() {
         profileData.personalInfo.phone = normalizedPhone;
       }
 
+      // Validate Visa Expiry Date for non-Emirati users
+      const isEmirati = profileData.personalInfo.nationality?.toLowerCase().includes("emirati") || 
+                        profileData.personalInfo.nationality?.toLowerCase().includes("uae");
+      
+      if (!isEmirati && profileData.personalInfo.nationality) {
+        if (!profileData.personalInfo.visaExpiryDate || profileData.personalInfo.visaExpiryDate.trim() === "") {
+          toast({
+            title: "Validation Error",
+            description: "Visa Expiry Date is required for non-Emirati users. Please enter your visa expiry date.",
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Map local state to API format (matching your backend controller)
+      // Clear visaExpiryDate if nationality is Emirati/UAE
+      const visaExpiryDate = isEmirati ? null : (profileData.personalInfo.visaExpiryDate || undefined);
+      
       const apiData = {
         // Basic Information
         fullName: profileData.personalInfo.fullName,
@@ -384,6 +407,7 @@ export default function JobSeekerProfilePage() {
         emirateId: profileData.personalInfo.emiratesId,
         passportNumber: profileData.personalInfo.passportNumber,
         professionalSummary: profileData.personalInfo.summary,
+        visaExpiryDate: visaExpiryDate,
         
         // Professional Experience (convert to array format expected by backend)
         professionalExperience: [{
@@ -912,10 +936,41 @@ export default function JobSeekerProfilePage() {
                   <Input
                     id="nationality"
                     value={profileData.personalInfo.nationality}
-                    onChange={(e) => handleInputChange("personalInfo", "nationality", e.target.value)}
+                    onChange={(e) => {
+                      const newNationality = e.target.value;
+                      handleInputChange("personalInfo", "nationality", newNationality);
+                      // Clear visaExpiryDate if nationality is changed to Emirati/UAE
+                      if (newNationality && 
+                          (newNationality.toLowerCase().includes("emirati") || 
+                           newNationality.toLowerCase().includes("uae"))) {
+                        handleInputChange("personalInfo", "visaExpiryDate", "");
+                      }
+                    }}
                     placeholder="e.g., Indian, British, American"
                   />
                 </div>
+                {/* Show Visa Expiry Date only for non-Emirati users */}
+                {profileData.personalInfo.nationality && 
+                 !profileData.personalInfo.nationality.toLowerCase().includes("emirati") && 
+                 !profileData.personalInfo.nationality.toLowerCase().includes("uae") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="visaExpiryDate">
+                      Visa Expiry Date <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        id="visaExpiryDate"
+                        type="date"
+                        value={profileData.personalInfo.visaExpiryDate}
+                        onChange={(e) => handleInputChange("personalInfo", "visaExpiryDate", e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">Required for non-Emirati users</p>
+                  </div>
+                )}
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">

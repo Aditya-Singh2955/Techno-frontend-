@@ -79,7 +79,7 @@ export default function HiresPage() {
         return;
       }
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/employer', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/applications/employer', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

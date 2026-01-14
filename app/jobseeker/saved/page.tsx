@@ -43,7 +43,7 @@ export default function SavedJobsPage() {
     try {
       setLoading(true)
       // Fetch all jobs and filter by saved IDs
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/jobs', {
         params: { 
           status: 'active',
           limit: 100 // Get a large number to ensure we catch all saved jobs

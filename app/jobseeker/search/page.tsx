@@ -79,7 +79,7 @@ export default function JobSearchPage() {
       if (jobType) params.jobType = jobType
       if (experienceLevel) params.experienceLevel = experienceLevel
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/jobs', {
         params
       })
 
@@ -127,7 +127,7 @@ export default function JobSearchPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
       if (!token) return
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/applications/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -183,10 +183,10 @@ export default function JobSearchPage() {
     
     try {
       // Use the new dedicated endpoint for profile eligibility check
-      console.log('🌐 Making API call to: https://techno-backend-a0s0.onrender.com/api/v1/profile/eligibility');
+      console.log('🌐 Making API call to: https://technozis.up.railway.app/api/v1/profile/eligibility');
       console.log('🔑 Using token:', token ? 'Token exists' : 'No token');
       
-      const eligibilityResponse = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/profile/eligibility', {
+      const eligibilityResponse = await axios.get('https://technozis.up.railway.app/api/v1/profile/eligibility', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -233,7 +233,7 @@ export default function JobSearchPage() {
       }
       
       // Get user profile data for application submission
-      const profileResponse = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+      const profileResponse = await axios.get('https://technozis.up.railway.app/api/v1/profile/details', {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -273,7 +273,7 @@ export default function JobSearchPage() {
         location: userProfile?.location || ""
       }
       
-      const response = await axios.post('https://techno-backend-a0s0.onrender.com/api/v1/applications', applicationData, {
+      const response = await axios.post('https://technozis.up.railway.app/api/v1/applications', applicationData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

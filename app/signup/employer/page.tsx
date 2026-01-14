@@ -24,6 +24,7 @@ export default function EmployerSignupPage() {
     designation: "",
     password: "",
     confirmPassword: "",
+    referralCode: "",
     agreeToTerms: false,
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -121,7 +122,8 @@ export default function EmployerSignupPage() {
         role: "employer",
         name: formData.companyName,
         phoneNumber: normalizedPhone,
-        designation: formData.designation
+        designation: formData.designation,
+        ...(formData.referralCode && { referralCode: formData.referralCode.trim().toUpperCase() }),
       })
 
       if (success) {
@@ -275,6 +277,19 @@ export default function EmployerSignupPage() {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+                <Input
+                  id="referralCode"
+                  name="referralCode"
+                  type="text"
+                  value={formData.referralCode}
+                  onChange={handleChange}
+                  placeholder="Enter referral code"
+                  style={{ textTransform: 'uppercase' }}
+                />
               </div>
 
               <div className="flex items-center space-x-2">

@@ -49,7 +49,7 @@ export default function CompanyProfilePage({ params }: { params: Promise<{ compa
         setError(null);
         
         // Fetch company profile from API
-        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/company/${companyId}`);
+        const response = await axios.get(`https://technozis.up.railway.app/api/v1/company/${companyId}`);
         
         if (response.data.success) {
           setCompany(response.data.data);

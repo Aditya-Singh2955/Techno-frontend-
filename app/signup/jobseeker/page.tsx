@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,6 +23,7 @@ export default function JobSeekerSignupPage() {
     mobile: "",
     password: "",
     confirmPassword: "",
+    referralCode: "",
     agreeToTerms: false,
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -30,7 +31,23 @@ export default function JobSeekerSignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { signup } = useAuth()
+
+  // Read referral code from URL parameters
+  useEffect(() => {
+    const refCode = searchParams?.get('ref');
+    if (refCode) {
+      setFormData((prev) => ({
+        ...prev,
+        referralCode: decodeURIComponent(refCode).toUpperCase(),
+      }));
+      toast({
+        title: "Referral Code Applied",
+        description: "Your referral code has been automatically filled!",
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,7 +128,8 @@ export default function JobSeekerSignupPage() {
         password: formData.password,
         role: "jobseeker",
         name: formData.name,
-        phoneNumber: normalizedPhone
+        phoneNumber: normalizedPhone,
+        ...(formData.referralCode && { referralCode: formData.referralCode.trim().toUpperCase() }),
       };
       console.log('Signup data:', signupData);
 
@@ -257,6 +275,19 @@ export default function JobSeekerSignupPage() {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+                <Input
+                  id="referralCode"
+                  name="referralCode"
+                  type="text"
+                  value={formData.referralCode}
+                  onChange={handleChange}
+                  placeholder="Enter referral code"
+                  style={{ textTransform: 'uppercase' }}
+                />
               </div>
 
               <div className="flex items-center space-x-2">

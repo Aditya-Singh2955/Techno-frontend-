@@ -50,7 +50,7 @@ export default function AdminGrievancesPage() {
     try {
       setLoading(true)
       
-      const response = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/grievances?page=${currentPage}&limit=${pageSize}`, {
+      const response = await fetch(`https://technozis.up.railway.app/api/v1/admin/grievances?page=${currentPage}&limit=${pageSize}`, {
         method: 'GET',
         headers: getAuthHeaders(),
       })

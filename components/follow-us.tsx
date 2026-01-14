@@ -10,7 +10,7 @@ interface FollowUsProps {
   onPointsEarned?: (platform: string, points: number) => void
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app';
 
 export function FollowUs({ onPointsEarned }: FollowUsProps) {
   const [followedPlatforms, setFollowedPlatforms] = useState<Set<string>>(new Set())

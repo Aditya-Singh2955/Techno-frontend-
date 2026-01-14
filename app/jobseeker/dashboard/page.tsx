@@ -8,7 +8,7 @@ import { FileText, UserCheck, TrendingUp, Clock, Star, Award, Eye, Calendar, Use
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,13 +42,18 @@ export default function JobSeekerDashboard() {
   const [rmServiceStatus, setRmServiceStatus] = useState("inactive");
   const { toast } = useToast();
 
+  // Refs to prevent duplicate API calls
+  const isFetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
+  const lastFocusTimeRef = useRef(0);
+
   // Fetch user applications
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/applications/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -61,15 +66,15 @@ export default function JobSeekerDashboard() {
       } catch (error) {
         // Silent error handling
       }
-  };
+  }, []);
 
   // Fetch interview count
-  const fetchInterviewCount = async () => {
+  const fetchInterviewCount = useCallback(async () => {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/interviews/jobseeker', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/interviews/jobseeker', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -82,15 +87,15 @@ export default function JobSeekerDashboard() {
     } catch (error) {
       // Silent error handling
     }
-  };
+  }, []);
 
   // Fetch referral stats
-  const fetchReferralStats = async () => {
+  const fetchReferralStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/referrals/history', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/applications/referrals/history', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -110,15 +115,15 @@ export default function JobSeekerDashboard() {
     } catch (error) {
       // Silent error handling
     }
-  };
+  }, []);
 
   // Fetch recommended jobs
-  const fetchRecommendedJobs = async () => {
+  const fetchRecommendedJobs = useCallback(async () => {
     try {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       if (!token) return;
 
-      const response = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/jobs/recommendations', {
+      const response = await axios.get('https://technozis.up.railway.app/api/v1/jobs/recommendations', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -133,7 +138,7 @@ export default function JobSeekerDashboard() {
       // Set empty array on error to show "no recommendations" state
       setRecommendedJobs([]);
     }
-  };
+  }, []);
 
   // Calculate profile completion and points (same logic as profile page)
   const calculateProfileMetrics = (profile: any) => {
@@ -189,61 +194,83 @@ export default function JobSeekerDashboard() {
     return { percentage, points: availablePoints };
   };
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
-        
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-
-        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
-        }
-
-        const data = await response.json();
-        setUserProfile(data.data);
-        
-        // Calculate metrics locally
-        const metrics = calculateProfileMetrics(data.data);
-        setCalculatedCompletion(metrics.percentage);
-        setCalculatedPoints(metrics.points);
-        
-        // Set RM Service status
-        setRmServiceStatus(data.data.rmService === "Active" ? "active" : "inactive");
-        
-        
-      } catch (error) {
-        // If token is invalid, redirect to login
+  // Fetch user profile
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
+      
+      if (!token) {
         router.push('/login');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    const fetchData = async () => {
-      await fetchUserProfile();
-      await fetchApplications();
-      await fetchInterviewCount();
-      await fetchReferralStats();
-      await fetchRecommendedJobs();
-    };
+      const response = await fetch('https://technozis.up.railway.app/api/v1/profile/details', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    fetchData();
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
 
-    // Refresh data when user returns to the page (e.g., after making a purchase)
-    const handleFocus = () => {
+      const data = await response.json();
+      setUserProfile(data.data);
+      
+      // Calculate metrics locally
+      const metrics = calculateProfileMetrics(data.data);
+      setCalculatedCompletion(metrics.percentage);
+      setCalculatedPoints(metrics.points);
+      
+      // Set RM Service status
+      setRmServiceStatus(data.data.rmService === "Active" ? "active" : "inactive");
+      
+    } catch (error) {
+      // If token is invalid, redirect to login
+      router.push('/login');
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  // Main data fetching function
+  const fetchData = useCallback(async () => {
+    // Prevent duplicate calls
+    if (isFetchingRef.current) {
+      return;
+    }
+
+    isFetchingRef.current = true;
+    
+    try {
+      await Promise.all([
+        fetchUserProfile(),
+        fetchApplications(),
+        fetchInterviewCount(),
+        fetchReferralStats(),
+        fetchRecommendedJobs()
+      ]);
+    } finally {
+      isFetchingRef.current = false;
+      hasFetchedRef.current = true;
+    }
+  }, [fetchUserProfile, fetchApplications, fetchInterviewCount, fetchReferralStats, fetchRecommendedJobs]);
+
+  useEffect(() => {
+    // Only fetch on initial mount
+    if (!hasFetchedRef.current) {
       fetchData();
+    }
+
+
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusTimeRef.current > 30000) {
+        lastFocusTimeRef.current = now;
+        fetchData();
+      }
     };
 
     window.addEventListener('focus', handleFocus);
@@ -251,7 +278,7 @@ export default function JobSeekerDashboard() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [router]);
+  }, [fetchData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">

@@ -89,7 +89,7 @@ export default function InterviewJobDetailPage({ params }: { params: Promise<{ j
         }
 
         // Get the specific interview/application data
-        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${jobId}`, {
+        const response = await axios.get(`https://technozis.up.railway.app/api/v1/applications/${jobId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }

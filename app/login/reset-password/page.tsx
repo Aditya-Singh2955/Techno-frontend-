@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
 
   const validateToken = async (token: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'}/auth/validate-reset-token`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1'}/auth/validate-reset-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export default function ResetPasswordPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'}/auth/reset-password`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1'}/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

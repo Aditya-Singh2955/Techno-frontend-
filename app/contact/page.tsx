@@ -41,7 +41,7 @@ export default function ContactPage() {
       }
 
       const response = await axios.post(
-        'https://techno-backend-a0s0.onrender.com/api/v1/contact',
+        'https://technozis.up.railway.app/api/v1/contact',
         {
           name: formData.name,
           email: formData.email,

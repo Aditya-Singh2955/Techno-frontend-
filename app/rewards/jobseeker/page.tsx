@@ -6,9 +6,11 @@ import { Navbar } from "@/components/navbar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Gift, UserCheck, FileText, Star, ArrowRight, Award, Trophy, RefreshCw } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Gift, UserCheck, FileText, Star, ArrowRight, Award, Trophy, RefreshCw, Copy, Check, Share2 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
 
 const membershipTiers = [
   {
@@ -61,6 +63,8 @@ export default function JobSeekerRewardsPage() {
   const [activityPoints, setActivityPoints] = useState(0)
   const [userTier, setUserTier] = useState("Blue")
   const [profileCompletion, setProfileCompletion] = useState(0)
+  const [referralLink, setReferralLink] = useState("")
+  const [copied, setCopied] = useState(false)
 
   // Get auth headers function
   const getAuthHeaders = (): Record<string, string> => {
@@ -156,7 +160,7 @@ export default function JobSeekerRewardsPage() {
         return;
       }
 
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
+      const response = await fetch('https://technozis.up.railway.app/api/v1/profile/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,7 +169,12 @@ export default function JobSeekerRewardsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch profile');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        if (response.status === 401 || response.status === 403) {
+          router.push('/login');
+          return;
+        }
+        throw new Error(errorData.message || `Failed to fetch profile (${response.status})`);
       }
 
       const data = await response.json();
@@ -191,7 +200,14 @@ export default function JobSeekerRewardsPage() {
       setActivityPoints(activityRewardPoints);
       setUserPoints(totalPoints);
       
-      // Determine tier
+        const referralCode = data.data?.referralCode || "";
+        if (referralCode) {
+          const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://findrtechnosis.netlify.app';
+          const link = `${baseUrl}/signup?ref=${referralCode}`;
+          setReferralLink(link);
+      } else {
+        setReferralLink("");
+      }
       const tier = determineUserTier(data.data, totalPoints);
       setUserTier(tier);
       
@@ -210,6 +226,48 @@ export default function JobSeekerRewardsPage() {
   // Refresh data
   const refreshData = () => {
     fetchUserProfile();
+  };
+
+  // Copy referral link to clipboard
+  const copyReferralLink = async () => {
+    if (!referralLink) return;
+    
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Referral link copied to clipboard",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Share referral link
+  const shareReferralLink = async () => {
+    if (!referralLink) return;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Join Findr - Dubai Job Board",
+          text: "Join Findr using my referral link and start your career journey in Dubai!",
+          url: referralLink,
+        });
+      } catch (error) {
+        // User cancelled or error occurred
+        console.log("Share cancelled or failed");
+      }
+    } else {
+      // Fallback to copy if share API not available
+      copyReferralLink();
+    }
   };
 
   useEffect(() => {
@@ -370,6 +428,125 @@ export default function JobSeekerRewardsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Refer a Friend Section */}
+        <Card className="card-shadow border-0 bg-gradient-to-br from-emerald-50 to-blue-50">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-full flex items-center justify-center">
+                <Share2 className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Refer a Friend</CardTitle>
+                <CardDescription>Share your referral link and earn rewards when friends join!</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-white rounded-lg p-4 border-2 border-emerald-200">
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">Your Referral Link</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-gray-50 rounded-md p-3 border border-gray-200 overflow-hidden">
+                  <p className="text-sm text-gray-800 break-all font-mono">
+                    {loading ? "Loading..." : referralLink || (userProfile?.referralCode ? "Generating link..." : "No referral code available")}
+                  </p>
+                </div>
+                <Button
+                  onClick={copyReferralLink}
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={!referralLink}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+                {typeof navigator !== "undefined" && (navigator as any).share && (
+                  <Button
+                    onClick={shareReferralLink}
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={!referralLink}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {userProfile?.referralCode && (
+              <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Your Referral Code</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-50 rounded-md p-3 border border-gray-200">
+                    <p className="text-lg font-bold text-blue-600 font-mono">{userProfile.referralCode}</p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(userProfile.referralCode);
+                      toast({
+                        title: "Copied!",
+                        description: "Referral code copied to clipboard",
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Code
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-emerald-100 rounded-lg p-4 border border-emerald-300">
+              <h4 className="font-semibold text-emerald-900 mb-2">How it works:</h4>
+              <ul className="space-y-2 text-sm text-emerald-800">
+                <li className="flex items-start gap-2">
+                  <span className="font-bold">1.</span>
+                  <span>Share your referral link with friends who are looking for jobs</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold">2.</span>
+                  <span>When they sign up using your link, the referral code is automatically filled</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold">3.</span>
+                  <span>Earn rewards when your referrals get hired through the platform</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-bold">4.</span>
+                  <span>Track your referrals and earnings in the referral history section</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <Link href="/jobseeker/referrals/history" className="flex-1">
+                <Button variant="outline" className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50">
+                  View Referral History
+                </Button>
+              </Link>
+              <Link href="/rewards/jobseeker/earn-money" className="flex-1">
+                <Button className="w-full gradient-bg text-white">
+                  Learn More About Rewards
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

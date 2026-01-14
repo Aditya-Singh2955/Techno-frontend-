@@ -14,7 +14,7 @@ import {
   Gift, ShoppingCart, Bookmark, Clock, Shield
 } from "lucide-react"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1'
 
 export default function AdminUserDetailPage() {
   const params = useParams() as { userType: string; id: string }
