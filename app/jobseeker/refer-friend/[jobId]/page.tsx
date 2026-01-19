@@ -95,7 +95,7 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
         setJobId(id)
         
         // Fetch job data from API
-        const response = await axios.get(`https://technozis.up.railway.app/api/v1/jobs/${id}`)
+        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${id}`)
         if (response.data && response.data.data) {
           setJob(response.data.data)
         } else {
@@ -123,7 +123,7 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
       const fetchApplicationData = async () => {
         try {
           const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
-          const response = await axios.get(`https://technozis.up.railway.app/api/v1/applications/${applicationId}`, {
+          const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -458,7 +458,7 @@ export default function ReferFriendPage({ params }: { params: Promise<{ jobId: s
       }
 
       // Submit referral application to backend
-      const response = await axios.post('https://technozis.up.railway.app/api/v1/applications/referral', {
+      const response = await axios.post('https://techno-backend-a0s0.onrender.com/api/v1/applications/referral', {
         jobId,
         friendName: formData.friendName,
         email: formData.email,

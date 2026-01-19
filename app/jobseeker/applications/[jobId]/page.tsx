@@ -89,7 +89,7 @@ export default function ApplicationJobDetailPage({ params }: { params: Promise<{
         }
 
         // Get all user applications to find the one matching jobId
-        const applicationsResponse = await axios.get('https://technozis.up.railway.app/api/v1/applications/user', {
+        const applicationsResponse = await axios.get('https://techno-backend-a0s0.onrender.com/api/v1/applications/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -115,7 +115,7 @@ export default function ApplicationJobDetailPage({ params }: { params: Promise<{
         } else {
           // If jobId is just a string, fetch the full job details
           try {
-            const jobResponse = await axios.get(`https://technozis.up.railway.app/api/v1/jobs/${application.jobId}`, {
+            const jobResponse = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${application.jobId}`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
               }
@@ -167,7 +167,7 @@ export default function ApplicationJobDetailPage({ params }: { params: Promise<{
       setIsWithdrawing(true);
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken');
       
-      const response = await axios.delete(`https://technozis.up.railway.app/api/v1/applications/${jobId}`, {
+      const response = await axios.delete(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }

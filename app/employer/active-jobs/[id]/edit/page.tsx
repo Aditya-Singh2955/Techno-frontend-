@@ -51,7 +51,7 @@ export default function EditJobPage() {
           return
         }
 
-        const response = await axios.get(`https://technozis.up.railway.app/api/v1/jobs/${jobId}`, {
+        const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -104,7 +104,7 @@ export default function EditJobPage() {
         return
       }
 
-      const response = await axios.put(`https://technozis.up.railway.app/api/v1/jobs/${jobId}`, {
+      const response = await axios.put(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}`, {
         title: formData.jobTitle,
         companyName: formData.company,
         location: formData.location,

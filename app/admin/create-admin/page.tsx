@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Star, Eye, EyeOff, UserPlus, Users } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1'
 
 export default function CreateAdminPage() {
   const [formData, setFormData] = useState({

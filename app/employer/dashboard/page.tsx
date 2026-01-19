@@ -36,7 +36,7 @@ export default function EmployerDashboard() {
         }
 
         // Fetch employer profile
-        const profileResponse = await fetch('https://technozis.up.railway.app/api/v1/employer/details', {
+        const profileResponse = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -54,7 +54,7 @@ export default function EmployerDashboard() {
         setUserProfile(profileData.data);
 
         // Fetch dashboard statistics
-        const statsResponse = await fetch('https://technozis.up.railway.app/api/v1/employer/dashboard/stats', {
+        const statsResponse = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/dashboard/stats', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -83,7 +83,7 @@ export default function EmployerDashboard() {
           const allApplications: any[] = [];
           
           // First, get all employer jobs
-          const jobsForAppsResponse = await fetch('https://technozis.up.railway.app/api/v1/employer/jobs', {
+          const jobsForAppsResponse = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/jobs', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -99,7 +99,7 @@ export default function EmployerDashboard() {
             if (jobsData.data?.jobs && jobsData.data.jobs.length > 0) {
               for (const job of jobsData.data.jobs.slice(0, 5)) { // Limit to first 5 jobs for performance
                 try {
-                  const jobAppsResponse = await fetch(`https://technozis.up.railway.app/api/v1/applications/job/${job._id}`, {
+                  const jobAppsResponse = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/job/${job._id}`, {
                     headers: {
                       'Authorization': `Bearer ${token}`,
                       'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export default function EmployerDashboard() {
         }
 
         // Fetch active jobs from the jobs API
-        const jobsResponse = await fetch('https://technozis.up.railway.app/api/v1/employer/jobs', {
+        const jobsResponse = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/employer/jobs', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

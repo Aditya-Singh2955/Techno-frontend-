@@ -34,7 +34,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { FollowUs } from "@/components/follow-us"
 import { normalizeUAE } from "@/lib/utils"
 
-const API_BASE_URL = "https://technozis.up.railway.app"
+const API_BASE_URL = "https://techno-backend-a0s0.onrender.com"
 
 interface ProfileData {
   personalInfo: {

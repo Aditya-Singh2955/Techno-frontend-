@@ -58,7 +58,7 @@ export default function AdminServicesPage() {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
       const buyerType = mapTabToBuyerType(activeTab)
       const response = await fetch(`${API_BASE_URL}/admin/services?page=${currentPage}&limit=${pageSize}&buyerType=${buyerType}`, {
         headers: {
@@ -120,7 +120,7 @@ export default function AdminServicesPage() {
   // Update service status
   const updateServiceStatus = async (serviceId: string, newStatus: string) => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
       const response = await fetch(`${API_BASE_URL}/admin/services/${serviceId}`, {
         method: 'PUT',
         headers: {

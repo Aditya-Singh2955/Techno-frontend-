@@ -39,7 +39,7 @@ export default function AdminApplicationsPage() {
         sortOrder: 'desc'
       })
       
-      const res = await fetch(`https://technozis.up.railway.app/api/v1/admin/applications?${queryParams}`)
+      const res = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/applications?${queryParams}`)
       const json = await res.json()
       
       if (!res.ok || !json.success) {
@@ -80,7 +80,7 @@ export default function AdminApplicationsPage() {
         sortOrder: 'desc'
       })
       
-      const res = await fetch(`https://technozis.up.railway.app/api/v1/admin/applications?${queryParams}`)
+      const res = await fetch(`https://techno-backend-a0s0.onrender.com/api/v1/admin/applications?${queryParams}`)
       const json = await res.json()
       if (!res.ok || !json.success) {
         throw new Error(json.message || 'Failed to fetch applications')

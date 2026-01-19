@@ -173,7 +173,7 @@ export default function JobApplicantsPage() {
       }
 
       // Fetch job details
-      const jobResponse = await axios.get(`https://technozis.up.railway.app/api/v1/jobs/${jobId}`, {
+      const jobResponse = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/jobs/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -181,7 +181,7 @@ export default function JobApplicantsPage() {
       setJobDetails(jobResponse.data.data);
 
       // Fetch applicants
-      const response = await axios.get(`https://technozis.up.railway.app/api/v1/applications/job/${jobId}`, {
+      const response = await axios.get(`https://techno-backend-a0s0.onrender.com/api/v1/applications/job/${jobId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -239,7 +239,7 @@ export default function JobApplicantsPage() {
         });
       }
       
-      await axios.patch(`https://technozis.up.railway.app/api/v1/applications/${applicationId}/status`, {
+      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${applicationId}/status`, {
         status: newStatus,
         notes
       }, {
@@ -339,7 +339,7 @@ export default function JobApplicantsPage() {
         }));
       }
       
-      await axios.patch(`https://technozis.up.railway.app/api/v1/applications/${selectedApplicant._id}/status`, {
+      await axios.patch(`https://techno-backend-a0s0.onrender.com/api/v1/applications/${selectedApplicant._id}/status`, {
         status: "interview_scheduled",
         notes: interviewDetails.notes,
         interviewDate: interviewDateTimeStr,

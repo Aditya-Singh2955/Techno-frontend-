@@ -54,7 +54,7 @@ export default function EmployerCartPage() {
       // Send one quote request per selected service (aligns with single-service API)
       const results = await Promise.allSettled(
         cart.map(async (item) => {
-          const response = await fetch('https://technozis.up.railway.app/api/v1/quotes', {
+          const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/quotes', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,

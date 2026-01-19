@@ -57,7 +57,7 @@ export interface UsersApiParams {
 }
 
 // API Base URL - adjust according to your backend setup
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://technozis.up.railway.app/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://techno-backend-a0s0.onrender.com/api/v1';
 
 // Users API Functions
 export const getJobseekers = async (params: UsersApiParams = {}): Promise<UsersApiResponse> => {

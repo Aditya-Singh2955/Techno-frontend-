@@ -86,7 +86,7 @@ export default function CartPage() {
           return
         }
 
-        const response = await fetch('https://technozis.up.railway.app/api/v1/profile/details', {
+        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -218,7 +218,7 @@ export default function CartPage() {
       const pointsUsed = typeof rewardPoints === "number" ? rewardPoints : 0
 
       // Call Stripe checkout endpoint instead of order API
-      const response = await fetch('https://technozis.up.railway.app/api/v1/rm-service/checkout', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/rm-service/checkout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -263,7 +263,7 @@ export default function CartPage() {
       const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
       if (!token) return
 
-      const response = await fetch('https://technozis.up.railway.app/api/v1/profile/details', {
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/profile/details', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
