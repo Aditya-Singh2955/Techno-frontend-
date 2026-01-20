@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { UserCheck, Mail, Calendar, FileText, TrendingUp, Star, CheckCircle, PlayCircle, ArrowRight, Award, Users } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 // Dummy user for dropdown
 const user = { name: "Jobseeker", type: "jobseeker" }
@@ -37,10 +38,12 @@ export default function PremiumServicesPage() {
   const [isSticky, setIsSticky] = useState(false)
   const [rmServiceStatus, setRmServiceStatus] = useState("inactive")
   const [isLoading, setIsLoading] = useState(true)
+  const [userPoints, setUserPoints] = useState(0)
+  const [purchasing, setPurchasing] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
 
-  // Fetch RM Service status
+  // Fetch RM Service status and user points
   useEffect(() => {
     const fetchServiceStatus = async () => {
       try {
@@ -62,6 +65,16 @@ export default function PremiumServicesPage() {
           const data = await response.json()
           if (data.success && data.data) {
             setRmServiceStatus(data.data.rmService === "Active" ? "active" : "inactive")
+            // Calculate available points
+            const apiPoints = typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? 0)
+            const deducted = data.data?.deductedPoints || 0
+            const referralPoints = data.data?.referralRewardPoints || 0
+            const activityPoints = (50 + Math.round((parseInt(data.data.profileCompleted || "0")) * 2)) + 
+                                 (data.data.rewards?.applyForJobs || 0) + 
+                                 (data.data.rewards?.rmService || 0) + 
+                                 (data.data.rewards?.socialMediaBonus || 0)
+            const totalPoints = activityPoints + referralPoints
+            setUserPoints(Math.max(0, totalPoints - deducted))
           }
         }
       } catch (error) {
@@ -80,14 +93,73 @@ export default function PremiumServicesPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const handleAddToCart = () => {
-    toast({
-      title: "Added to cart!",
-      description: "Virtual RM Service has been added to your cart.",
-    })
-    setTimeout(() => {
-      router.push("/jobseeker/cart")
-    }, 800)
+  const handlePurchaseWithPoints = async (serviceType: 'basic' | 'elite') => {
+    const serviceName = serviceType === 'basic' ? 'RM Basic Service' : 'RM Elite Service'
+    const pointsRequired = serviceType === 'basic' ? 800 : 1100
+    
+    if (userPoints < pointsRequired) {
+      toast({
+        title: "Insufficient Points",
+        description: `You need ${pointsRequired} points but only have ${userPoints} points available.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    setPurchasing(serviceType)
+    
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to purchase services.",
+          variant: "destructive",
+        })
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/orders', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service: serviceName,
+          price: 0, // Points-based purchase, no AED price
+          pointsUsed: pointsRequired,
+          couponCode: '',
+          totalAmount: 0 // Points-based purchase
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to purchase service')
+      }
+
+      toast({
+        title: "Purchase Successful!",
+        description: `${serviceName} has been activated. You earned 100 bonus points!`,
+      })
+      
+      // Refresh service status and points
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+    } catch (error: any) {
+      console.error('Purchase error:', error)
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "Failed to purchase service. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setPurchasing(null)
+    }
   }
 
   return (
@@ -124,16 +196,14 @@ export default function PremiumServicesPage() {
         ) : (
           <>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Premium RM Services</h1>
-            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-4">
               Get a dedicated Relationship Manager who will handle your entire job search process—from applications to interviews, until you land your dream job.
             </p>
-            <Button 
-              className="gradient-bg text-white px-8 py-3 text-lg font-semibold rounded-full shadow-md hover:shadow-lg transition mb-4" 
-              onClick={handleAddToCart}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Loading...' : 'Start Service – AED 2,500'}
-            </Button>
+            {!isLoading && (
+              <div className="text-lg font-semibold text-emerald-600 mb-8">
+                Your Available Points: {userPoints}
+              </div>
+            )}
           </>
         )}
       </section>
@@ -165,14 +235,106 @@ export default function PremiumServicesPage() {
           </Card>
         </section>
       ) : (
-        <section className="w-full max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 py-8 px-4">
-          {serviceStats.map((stat, i) => (
-            <Card key={i} className="rounded-xl shadow-md text-center py-6">
-              <stat.icon className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
-              <div className="font-semibold text-lg">{stat.label}</div>
-            </Card>
-          ))}
-        </section>
+        <>
+          {/* Service Stats */}
+          <section className="w-full max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 py-8 px-4">
+            {serviceStats.map((stat, i) => (
+              <Card key={i} className="rounded-xl shadow-md text-center py-6">
+                <stat.icon className="w-8 h-8 mx-auto text-emerald-500 mb-2" />
+                <div className="font-semibold text-lg">{stat.label}</div>
+              </Card>
+            ))}
+          </section>
+
+          {/* Service Options */}
+          <section className="w-full max-w-5xl mx-auto py-8 px-4">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Choose Your Service Plan</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* RM Basic Service */}
+              <Card className="rounded-xl shadow-lg border-2 border-emerald-200 hover:border-emerald-400 transition">
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-2xl font-bold text-emerald-700">RM Basic Service</CardTitle>
+                  <CardDescription className="text-lg mt-2">
+                    <span className="text-3xl font-bold text-emerald-600">800</span>
+                    <span className="text-gray-600 ml-2">Points</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>Job Application Management</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>Email Communication</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>Profile Optimization</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                      <span>Basic Interview Support</span>
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => handlePurchaseWithPoints('basic')}
+                    disabled={isLoading || purchasing !== null || userPoints < 800}
+                  >
+                    {purchasing === 'basic' ? 'Processing...' : userPoints < 800 ? `Need ${800 - userPoints} more points` : 'Purchase with Points'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* RM Elite Service */}
+              <Card className="rounded-xl shadow-lg border-2 border-purple-200 hover:border-purple-400 transition relative">
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-purple-600 text-white">Popular</Badge>
+                </div>
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-2xl font-bold text-purple-700">RM Elite Service</CardTitle>
+                  <CardDescription className="text-lg mt-2">
+                    <span className="text-3xl font-bold text-purple-600">1,100</span>
+                    <span className="text-gray-600 ml-2">Points</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+                      <span>Everything in Basic</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+                      <span>Priority Interview Scheduling</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+                      <span>Advanced Profile Optimization</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+                      <span>Dedicated Support Until Hired</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+                      <span>Premium Placement Support</span>
+                    </li>
+                  </ul>
+                  <Button
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                    onClick={() => handlePurchaseWithPoints('elite')}
+                    disabled={isLoading || purchasing !== null || userPoints < 1100}
+                  >
+                    {purchasing === 'elite' ? 'Processing...' : userPoints < 1100 ? `Need ${1100 - userPoints} more points` : 'Purchase with Points'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        </>
       )}
 
       {/* What Your RM Will Do - Only show when service is not active */}

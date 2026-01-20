@@ -185,18 +185,52 @@ export default function JobSeekerRewardsPage() {
       setProfileCompletion(metrics.percentage);
       
       // Calculate activity points from individual components
-      // Activity points = Profile completion + Application points + RM service + Social media bonus
-      const referralRewardPoints = data.data.referralRewardPoints || 0;
+      // First, fetch referral history to get hired count for placement points calculation
+      let placementPoints = 0;
+      let signupReferralPoints = 0;
+      const totalReferralRewardPoints = data.data.referralRewardPoints || 0;
+      
+      try {
+        // Fetch referral history to count hired referrals (job placements)
+        const referralHistoryResponse = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/applications/referrals/history', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (referralHistoryResponse.ok) {
+          const referralHistoryData = await referralHistoryResponse.json();
+          const hiredCount = referralHistoryData?.stats?.hired || 0;
+          // Placement points = only job placement referrals (20 points per hire)
+          placementPoints = hiredCount * 20;
+          // Signup referral points = total - placement points
+          signupReferralPoints = Math.max(0, totalReferralRewardPoints - placementPoints);
+        } else {
+          // If we can't fetch referral history, use totalReferralRewardPoints as placement points
+          // (fallback - assumes all are placement points)
+          placementPoints = totalReferralRewardPoints;
+          signupReferralPoints = 0;
+        }
+      } catch (error) {
+        console.error('Error fetching referral history:', error);
+        // Fallback: assume all are placement points
+        placementPoints = totalReferralRewardPoints;
+        signupReferralPoints = 0;
+      }
+      
       const profileCompletionPoints = 50 + metrics.percentage * 2; // Base 50 + 2 points per percentage
       const applicationPoints = data.data?.rewards?.applyForJobs || 0;
       const rmServicePoints = data.data?.rewards?.rmService || 0;
       const socialMediaBonus = data.data?.rewards?.socialMediaBonus || 0;
-      const activityRewardPoints = profileCompletionPoints + applicationPoints + rmServicePoints + socialMediaBonus;
+      // Activity points = Profile + Applications + RM Service + Social Media + Signup Referrals
+      const activityRewardPoints = profileCompletionPoints + applicationPoints + rmServicePoints + socialMediaBonus + signupReferralPoints;
       
-      // Calculate total points: Activity Points + Referral Points - Deducted Points
-      const totalPoints = Math.max(0, activityRewardPoints + referralRewardPoints - deducted);
+      // Calculate total points: Activity Points + Placement Points - Deducted Points
+      const totalPoints = Math.max(0, activityRewardPoints + placementPoints - deducted);
       
-      setReferralPoints(referralRewardPoints);
+      setReferralPoints(placementPoints);
       setActivityPoints(activityRewardPoints);
       setUserPoints(totalPoints);
       
@@ -328,7 +362,7 @@ export default function JobSeekerRewardsPage() {
                 {/* Referral Points Card */}
                 <div className="flex-1 bg-blue-50 rounded-xl shadow-md flex items-center px-5 py-4 min-w-0">
                   <span className="text-2xl mr-4">🎁</span>
-                  <span className="font-medium text-blue-900 text-base flex-1">Referral Reward Points</span>
+                  <span className="font-medium text-blue-900 text-base flex-1">Placement Points</span>
                   <span className="font-bold text-blue-800 text-lg ml-2">{referralPoints}</span>
                 </div>
                 {/* Activity Points Card */}
