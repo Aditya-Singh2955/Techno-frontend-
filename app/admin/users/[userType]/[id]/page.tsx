@@ -137,25 +137,54 @@ export default function AdminUserDetailPage() {
       if (userData.socialLinks?.twitterX) completed++;
       
       const percentage = Math.min(Math.round((completed / totalFields) * 100), 100);
-      const profileCompletionPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage
+      
+      // Helper functions for tier calculation
+      const getExperienceLevel = (yearsExp: number): 'Blue' | 'Silver' | 'Gold' => {
+        if (yearsExp <= 1) return 'Blue';
+        else if (yearsExp >= 2 && yearsExp <= 5) return 'Silver';
+        else return 'Gold';
+      };
+
+      const getTierMultiplier = (tier: string, experienceLevel: 'Blue' | 'Silver' | 'Gold'): number => {
+        const A = 1.0;
+        if (tier === 'Platinum') {
+          if (experienceLevel === 'Blue') return 2.0;
+          else if (experienceLevel === 'Silver') return 3.0;
+          else return 4.0;
+        } else if (tier === 'Gold') return 2.0 * A;
+        else if (tier === 'Silver') return 1.5 * A;
+        else return 1.0 * A;
+      };
+
+      // Calculate base points (before multiplier)
+      const basePoints = 50 + percentage * 2;
+      
+      // Get experience and tier factors
+      const yearsExp = firstExperience.yearsOfExperience || 0;
+      const isEmirati = userData.nationality?.toLowerCase().includes("emirati");
+      const experienceLevel = getExperienceLevel(yearsExp);
+      
+      // Determine tier
+      let tier: string;
+      if (isEmirati) tier = "Platinum";
+      else if (basePoints >= 500) tier = "Platinum";
+      else if (yearsExp >= 5) tier = "Gold";
+      else if (yearsExp >= 2 && yearsExp <= 5) tier = "Silver";
+      else tier = "Blue";
+      
+      // Get tier multiplier and apply to base points
+      const multiplier = getTierMultiplier(tier, experienceLevel);
+      const multipliedBasePoints = basePoints * multiplier;
+      
+      // Add other points without multiplier
       const applicationPoints = userData.rewards?.applyForJobs || 0;
       const rmServicePoints = userData.rewards?.rmService || 0;
       const deductedPoints = userData.deductedPoints || 0;
-      const totalPoints = profileCompletionPoints + applicationPoints + rmServicePoints;
+      
+      const totalPoints = multipliedBasePoints + applicationPoints + rmServicePoints;
       const availablePoints = Math.max(0, totalPoints - deductedPoints);
       
-      // Get experience and other tier factors
-      const yearsExp = firstExperience.yearsOfExperience || 0;
-      const isEmirati = userData.nationality?.toLowerCase().includes("emirati");
-      const hasEmploymentVisa = userData.employmentVisa === "yes";
-      const hasEmiratesId = !!userData.emirateId;
-      
-      // Determine tier using same logic as dashboard
-      if (availablePoints >= 500) return "Platinum";
-      else if (isEmirati || yearsExp >= 10) return "Gold";
-      else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) return "Silver";
-      else if (yearsExp <= 4 || hasEmploymentVisa) return "Blue";
-      else return "Silver";
+      return tier;
     };
 
     const candidate = {

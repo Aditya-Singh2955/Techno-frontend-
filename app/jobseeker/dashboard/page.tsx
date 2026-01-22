@@ -140,6 +140,45 @@ export default function JobSeekerDashboard() {
     }
   }, []);
 
+  // Determine experience level based on years of experience
+  const getExperienceLevel = (yearsExp: number): 'Blue' | 'Silver' | 'Gold' => {
+    if (yearsExp <= 1) return 'Blue';
+    else if (yearsExp >= 2 && yearsExp <= 5) return 'Silver';
+    else return 'Gold'; // 5+ years
+  };
+
+  // Get tier multiplier based on tier and experience level
+  const getTierMultiplier = (tier: string, experienceLevel: 'Blue' | 'Silver' | 'Gold'): number => {
+    const A = 1.0; // Base multiplier
+    
+    if (tier === 'Platinum') {
+      // Platinum multipliers based on experience level
+      if (experienceLevel === 'Blue') return 2.0; // Platinum Blue
+      else if (experienceLevel === 'Silver') return 3.0; // Platinum Silver
+      else return 4.0; // Platinum Gold
+    } else if (tier === 'Gold') {
+      return 2.0 * A; // 2.0x
+    } else if (tier === 'Silver') {
+      return 1.5 * A; // 1.5x
+    } else {
+      return 1.0 * A; // 1.0x (Blue)
+    }
+  };
+
+  // Determine user tier based on points and profile
+  const determineUserTier = (profile: any, basePoints: number) => {
+    const yearsExp = profile?.professionalExperience?.[0]?.yearsOfExperience || 0;
+    const isEmirati = profile?.nationality?.toLowerCase()?.includes("emirati");
+
+    // If Emirati, always Platinum tier
+    if (isEmirati) return "Platinum";
+    // Otherwise determine by experience
+    else if (basePoints >= 500) return "Platinum";
+    else if (yearsExp >= 5) return "Gold";
+    else if (yearsExp >= 2 && yearsExp <= 5) return "Silver";
+    else return "Blue"; // 0-1 year
+  };
+
   // Calculate profile completion and points (same logic as profile page)
   const calculateProfileMetrics = (profile: any) => {
     let completed = 0;
@@ -155,7 +194,6 @@ export default function JobSeekerDashboard() {
     if (profile?.professionalSummary) completed++;
     if (profile?.emirateId) completed++;
     if (profile?.passportNumber) completed++;
-    // employmentVisa removed from required fields as it's not in the form
 
     // Experience (4 fields)
     const exp = profile?.professionalExperience?.[0];
@@ -175,7 +213,6 @@ export default function JobSeekerDashboard() {
     if (profile?.skills && profile.skills.length > 0) completed++;
     if (profile?.jobPreferences?.preferredJobType && profile.jobPreferences.preferredJobType.length > 0) completed++;
     if (profile?.certifications && profile.certifications.length > 0) completed++;
-    // Check if resume exists (either resumeDocument URL or resumeAndDocs array)
     if (profile?.resumeDocument || (profile?.jobPreferences?.resumeAndDocs && profile.jobPreferences.resumeAndDocs.length > 0)) completed++;
 
     // Social Links (3 fields)
@@ -184,11 +221,27 @@ export default function JobSeekerDashboard() {
     if (profile?.socialLinks?.twitterX) completed++;
 
     const percentage = Math.round((completed / totalFields) * 100);
-    const calculatedPoints = 50 + percentage * 2; // Base 50 + 2 points per percentage (100% = 250 points)
-    const applicationPoints = profile?.rewards?.applyForJobs || 0; // Points from job applications
-    const rmServicePoints = profile?.rewards?.rmService || 0; // Points from RM service purchase
+    
+    // Calculate base points (before multiplier)
+    const basePoints = 50 + percentage * 2;
+    
+    // Determine tier and experience level
+    const yearsExp = exp?.yearsOfExperience || 0;
+    const experienceLevel = getExperienceLevel(yearsExp);
+    const tier = determineUserTier(profile, basePoints);
+    
+    // Get tier multiplier
+    const multiplier = getTierMultiplier(tier, experienceLevel);
+    
+    // Apply multiplier to base points
+    const multipliedBasePoints = basePoints * multiplier;
+    
+    // Add other points (applications, RM service) without multiplier
+    const applicationPoints = profile?.rewards?.applyForJobs || 0;
+    const rmServicePoints = profile?.rewards?.rmService || 0;
     const deductedPoints = profile?.deductedPoints || 0;
-    const totalPoints = calculatedPoints + applicationPoints + rmServicePoints;
+    
+    const totalPoints = multipliedBasePoints + applicationPoints + rmServicePoints;
     const availablePoints = Math.max(0, totalPoints - deductedPoints);
 
     return { percentage, points: availablePoints };
@@ -339,12 +392,13 @@ export default function JobSeekerDashboard() {
                         const hasEmploymentVisa = userProfile?.employmentVisa === "yes";
                         const hasEmiratesId = !!userProfile?.emirateId;
                         
+                        // Determine tier based on new logic
                         let tier;
-                        if (points >= 500) tier = "Platinum";
-                        else if (isEmirati || yearsExp >= 10) tier = "Gold";
-                        else if (yearsExp >= 5 && (hasEmploymentVisa || hasEmiratesId)) tier = "Silver";
-                        else if (yearsExp <= 4 || hasEmploymentVisa) tier = "Blue";
-                        else tier = "Silver";
+                        if (isEmirati) tier = "Platinum"; // Emirati users get Platinum tier
+                        else if (points >= 500) tier = "Platinum";
+                        else if (yearsExp >= 5) tier = "Gold";
+                        else if (yearsExp >= 2 && yearsExp <= 5) tier = "Silver";
+                        else tier = "Blue"; // 0-1 year
                         
                         
                         return tier;

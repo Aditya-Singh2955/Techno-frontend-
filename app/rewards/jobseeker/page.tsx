@@ -38,7 +38,7 @@ const membershipTiers = [
     color: "text-yellow-600",
     bg: "bg-yellow-50",
     border: "border-yellow-200",
-    desc: "Emirati National or >=10 Years Experience",
+    desc: ">=10 Years Experience",
   },
   {
     name: "Platinum",
@@ -47,7 +47,7 @@ const membershipTiers = [
     color: "text-purple-600",
     bg: "bg-purple-50",
     border: "border-purple-200",
-    desc: "Actively uses platform or purchases Premium Services",
+    desc: "Emirati National, 500+ Points, or Premium Services",
   },
 ]
 
@@ -136,17 +136,43 @@ export default function JobSeekerRewardsPage() {
     return { percentage, points: availablePoints };
   };
 
+  // Determine experience level based on years of experience
+  const getExperienceLevel = (yearsExp: number): 'Blue' | 'Silver' | 'Gold' => {
+    if (yearsExp <= 1) return 'Blue';
+    else if (yearsExp >= 2 && yearsExp <= 5) return 'Silver';
+    else return 'Gold'; // 5+ years
+  };
+
+  // Get tier multiplier based on tier and experience level
+  const getTierMultiplier = (tier: string, experienceLevel: 'Blue' | 'Silver' | 'Gold'): number => {
+    const A = 1.0; // Base multiplier
+    
+    if (tier === 'Platinum') {
+      // Platinum multipliers based on experience level
+      if (experienceLevel === 'Blue') return 2.0; // Platinum Blue
+      else if (experienceLevel === 'Silver') return 3.0; // Platinum Silver
+      else return 4.0; // Platinum Gold
+    } else if (tier === 'Gold') {
+      return 2.0 * A; // 2.0x
+    } else if (tier === 'Silver') {
+      return 1.5 * A; // 1.5x
+    } else {
+      return 1.0 * A; // 1.0x (Blue)
+    }
+  };
+
   // Determine user tier based on points and profile
   const determineUserTier = (profile: any, points: number) => {
     const yearsExp = profile?.professionalExperience?.[0]?.yearsOfExperience || 0;
     const isEmirati = profile?.nationality?.toLowerCase()?.includes("emirati");
-    const hasEmiratesId = !!profile?.emirateId;
 
-    if (points >= 500) return "Platinum";
-    else if (isEmirati || yearsExp >= 10) return "Gold";
-    else if (yearsExp >= 5 && hasEmiratesId) return "Silver";
-    else if (yearsExp <= 4) return "Blue";
-    else return "Silver";
+    // If Emirati, always Platinum tier
+    if (isEmirati) return "Platinum";
+    // Otherwise determine by experience
+    else if (points >= 500) return "Platinum";
+    else if (yearsExp >= 5) return "Gold";
+    else if (yearsExp >= 2 && yearsExp <= 5) return "Silver";
+    else return "Blue"; // 0-1 year
   };
 
   // Fetch user profile data
@@ -220,12 +246,27 @@ export default function JobSeekerRewardsPage() {
         signupReferralPoints = 0;
       }
       
-      const profileCompletionPoints = 50 + metrics.percentage * 2; // Base 50 + 2 points per percentage
+      // Calculate base points (before multiplier)
+      const basePoints = 50 + metrics.percentage * 2; // Base 50 + 2 points per percentage
+      
+      // Determine tier and experience level
+      const yearsExp = data.data?.professionalExperience?.[0]?.yearsOfExperience || 0;
+      const experienceLevel = getExperienceLevel(yearsExp);
+      const tier = determineUserTier(data.data, basePoints);
+      
+      // Get tier multiplier
+      const multiplier = getTierMultiplier(tier, experienceLevel);
+      
+      // Apply multiplier to base points
+      const multipliedBasePoints = basePoints * multiplier;
+      
+      // Add other points (applications, RM service, social media, referrals) without multiplier
       const applicationPoints = data.data?.rewards?.applyForJobs || 0;
       const rmServicePoints = data.data?.rewards?.rmService || 0;
       const socialMediaBonus = data.data?.rewards?.socialMediaBonus || 0;
-      // Activity points = Profile + Applications + RM Service + Social Media + Signup Referrals
-      const activityRewardPoints = profileCompletionPoints + applicationPoints + rmServicePoints + socialMediaBonus + signupReferralPoints;
+      
+      // Activity points = Multiplied Base Points + Applications + RM Service + Social Media + Signup Referrals
+      const activityRewardPoints = multipliedBasePoints + applicationPoints + rmServicePoints + socialMediaBonus + signupReferralPoints;
       
       // Calculate total points: Activity Points + Placement Points - Deducted Points
       const totalPoints = Math.max(0, activityRewardPoints + placementPoints - deducted);
@@ -242,7 +283,6 @@ export default function JobSeekerRewardsPage() {
       } else {
         setReferralLink("");
       }
-      const tier = determineUserTier(data.data, totalPoints);
       setUserTier(tier);
       
     } catch (error) {
