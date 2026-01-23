@@ -65,16 +65,15 @@ export default function PremiumServicesPage() {
           const data = await response.json()
           if (data.success && data.data) {
             setRmServiceStatus(data.data.rmService === "Active" ? "active" : "inactive")
-            // Calculate available points
-            const apiPoints = typeof data.data.points === 'number' ? data.data.points : (data.data.rewards?.totalPoints ?? 0)
+            
+            // Use points directly from database (backend already calculates and maintains this)
+            // Backend stores total points including all components (base, applications, RM service, social media, referrals)
+            // We just need to subtract deducted points to get available points
             const deducted = data.data?.deductedPoints || 0
-            const referralPoints = data.data?.referralRewardPoints || 0
-            const activityPoints = (50 + Math.round((parseInt(data.data.profileCompleted || "0")) * 2)) + 
-                                 (data.data.rewards?.applyForJobs || 0) + 
-                                 (data.data.rewards?.rmService || 0) + 
-                                 (data.data.rewards?.socialMediaBonus || 0)
-            const totalPoints = activityPoints + referralPoints
-            setUserPoints(Math.max(0, totalPoints - deducted))
+            const dbPoints = typeof data.data.points === 'number' ? data.data.points : 0
+            const availablePoints = Math.max(0, dbPoints - deducted)
+            
+            setUserPoints(availablePoints)
           }
         }
       } catch (error) {
