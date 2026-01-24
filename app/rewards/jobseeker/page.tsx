@@ -20,7 +20,7 @@ const membershipTiers = [
     color: "text-blue-600",
     bg: "bg-blue-50",
     border: "border-blue-200",
-    desc: "0–4 Years Experience",
+    desc: "For job seekers with 0 to 1 years of experience",
   },
   {
     name: "Silver",
@@ -29,7 +29,7 @@ const membershipTiers = [
     color: "text-gray-600",
     bg: "bg-gray-50",
     border: "border-gray-200",
-    desc: ">=5 Years Experience + Emirates ID",
+    desc: "For job seekers with 1 to 5 years of experience",
   },
   {
     name: "Gold",
@@ -38,7 +38,7 @@ const membershipTiers = [
     color: "text-yellow-600",
     bg: "bg-yellow-50",
     border: "border-yellow-200",
-    desc: ">=10 Years Experience",
+    desc: "For job seekers with 5 or more years of experience",
   },
   {
     name: "Platinum",
@@ -47,7 +47,7 @@ const membershipTiers = [
     color: "text-purple-600",
     bg: "bg-purple-50",
     border: "border-purple-200",
-    desc: "Emirati National, 500+ Points, or Premium Services",
+    desc: "For Emirati nationals",
   },
 ]
 
@@ -453,7 +453,7 @@ export default function JobSeekerRewardsPage() {
             </div>
             <div className="flex items-center space-x-3">
               <Gift className="w-6 h-6 text-pink-600" />
-              <span>Refer a friend</span>
+              <span>Invite a friend</span>
               <Badge className="bg-pink-100 text-pink-800 ml-2">+50</Badge>
             </div>
             <div className="flex items-center space-x-3">
@@ -497,7 +497,7 @@ export default function JobSeekerRewardsPage() {
                   <div className="text-center">
                     <tier.icon className={`w-10 h-10 mx-auto mb-3 ${tier.color}`} />
                     <h3 className="text-xl font-bold mb-1">{tier.name}</h3>
-                    {/* Removed subtitle and points */}
+                    <p className="text-sm text-gray-600 mb-2">{tier.desc}</p>
                     {tier.name === userTier && <Badge className="gradient-bg text-white">Current Tier</Badge>}
                   </div>
                 </div>
@@ -514,7 +514,7 @@ export default function JobSeekerRewardsPage() {
                 <Share2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">Refer a Friend</CardTitle>
+                <CardTitle className="text-2xl">Invite a Friend</CardTitle>
                 <CardDescription>Share your referral link and earn rewards when friends join!</CardDescription>
               </div>
             </div>

@@ -484,7 +484,7 @@ export default function EmployerRewardsPage() {
                 <Share2 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">Refer a Friend</CardTitle>
+                <CardTitle className="text-2xl">Invite a Friend</CardTitle>
                 <CardDescription>Share your referral link and earn rewards when friends join!</CardDescription>
               </div>
             </div>
