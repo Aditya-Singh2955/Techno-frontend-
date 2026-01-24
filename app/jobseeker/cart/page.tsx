@@ -7,16 +7,16 @@ import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ShoppingCart, Trash2, BadgePercent } from "lucide-react"
+import { useCart } from "@/contexts/cart-context"
 
 export default function CartPage() {
   const [rewardPoints, setRewardPoints] = useState<number | "">("")
   const [userPoints, setUserPoints] = useState(0)
   const [coupon, setCoupon] = useState("")
-  const [cart, setCart] = useState([{ name: "Virtual RM Service", desc: "Dedicated Relationship Manager for your job search journey.", price: 4999 }])
-  const [removed, setRemoved] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
   const router = useRouter()
+  const { cart, removeFromCart } = useCart()
 
   // Calculate profile points (same logic as dashboard) - fallback only
   const calculateProfilePoints = (profile: any) => {
@@ -125,15 +125,28 @@ export default function CartPage() {
     fetchUserPoints()
   }, [router, toast])
 
-  const AED_PRICE = 2500;
-  const subtotal = cart.length > 0 ? AED_PRICE : 0;
-  const pointsDiscount = (typeof rewardPoints === "number" ? rewardPoints : 0) * 1; // 1 point = 1 AED
-  const total = Math.max(subtotal - pointsDiscount, 0);
+  // Calculate totals for all payment methods
+  const pointsItems = cart.filter(item => item.paymentMethod === 'points')
+  const aedItems = cart.filter(item => item.paymentMethod === 'aed')
+  const hybridItems = cart.filter(item => item.paymentMethod === 'hybrid')
+  
+  const totalPointsRequired = pointsItems.reduce((total, item) => total + (item.points || 0), 0)
+  const totalAEDRequired = aedItems.reduce((total, item) => total + (item.aedPrice || 0), 0)
+  
+  // Calculate hybrid totals
+  const hybridPointsRequired = hybridItems.reduce((total, item) => total + (item.hybridPayment?.pointsToUse || 0), 0)
+  const hybridAEDRequired = hybridItems.reduce((total, item) => total + (item.hybridPayment?.aedAmount || 0), 0)
+  
+  // Combined totals
+  const combinedPointsRequired = totalPointsRequired + hybridPointsRequired
+  const combinedAEDRequired = totalAEDRequired + hybridAEDRequired
+  
+  const pointsDiscount = (typeof rewardPoints === "number" ? rewardPoints : 0);
+  const finalPointsTotal = Math.max(combinedPointsRequired - pointsDiscount, 0);
 
-  const handleRemove = () => {
-    setCart([])
-    setRemoved(true)
-    toast({ title: "Removed from cart", description: "Virtual RM Service removed." })
+  const handleRemove = (itemTitle: string) => {
+    removeFromCart(itemTitle)
+    toast({ title: "Removed from cart", description: `${itemTitle} removed from cart.` })
   }
 
   const handlePointsChange = (value: string | number) => {
@@ -180,7 +193,7 @@ export default function CartPage() {
     if (pointsToApply > 0) {
       toast({ 
         title: "Points Applied!", 
-        description: `${pointsToApply} points applied for AED ${pointsToApply} discount.` 
+        description: `${pointsToApply} points applied as discount.` 
       })
     } else {
       toast({
@@ -205,7 +218,7 @@ export default function CartPage() {
         return
       }
 
-      if (removed || cart.length === 0) {
+      if (cart.length === 0) {
         toast({
           title: "Cart Empty",
           description: "Please add items to your cart before placing an order.",
@@ -217,36 +230,100 @@ export default function CartPage() {
 
       const pointsUsed = typeof rewardPoints === "number" ? rewardPoints : 0
 
-      // Call Stripe checkout endpoint instead of order API
-      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/rm-service/checkout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pointsUsed: pointsUsed,
-          totalAmount: total
+      // Check if user has enough points for points-based items
+      if (combinedPointsRequired > 0 && finalPointsTotal > userPoints) {
+        toast({
+          title: "Insufficient Points",
+          description: `You need ${finalPointsTotal} points but only have ${userPoints} points available.`,
+          variant: "destructive",
         })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to create checkout session')
+        setIsLoading(false)
+        return
       }
 
-      if (data.success && data.url) {
-        // Redirect to Stripe checkout
-        window.location.href = data.url
+      // Handle different payment scenarios
+      if (combinedAEDRequired > 0) {
+        // Payment via Stripe (handles both AED-only and hybrid payments)
+        const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/rm-service/checkout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            services: cart.map(item => ({
+              service: item.title,
+              paymentMethod: item.paymentMethod,
+              pointsToUse: item.hybridPayment?.pointsToUse || item.points || 0,
+              aedAmount: item.hybridPayment?.aedAmount || item.aedPrice || 0,
+              totalPointsRequired: item.hybridPayment?.totalPointsRequired || item.points || 0
+            })),
+            pointsUsed: combinedPointsRequired,
+            totalAmount: combinedAEDRequired,
+            paymentMethod: hybridItems.length > 0 ? 'hybrid' : 'aed'
+          })
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || data.message || 'Failed to create checkout session')
+        }
+
+        if (data.success && data.url) {
+          // Redirect to Stripe checkout
+          window.location.href = data.url
+          return
+        } else {
+          throw new Error('No checkout URL received')
+        }
       } else {
-        throw new Error('No checkout URL received')
+        // Points-only payment
+        const allPointsItems = [...pointsItems, ...hybridItems.filter(item => !item.hybridPayment?.aedAmount)]
+        const orderPromises = allPointsItems.map(async (item) => {
+          if (item.category === 'rm-service' && item.serviceType) {
+            const serviceName = item.title
+            const pointsRequired = item.points || 0
+            
+            return fetch('https://techno-backend-a0s0.onrender.com/api/v1/orders', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                service: serviceName,
+                price: 0,
+                pointsUsed: pointsRequired,
+                couponCode: '',
+                totalAmount: 0
+              })
+            })
+          }
+        })
+
+        const responses = await Promise.all(orderPromises.filter(Boolean))
+        
+        const allSuccessful = responses.every(response => response?.ok)
+        
+        if (!allSuccessful) {
+          throw new Error('Some orders failed to process')
+        }
+
+        toast({
+          title: "Orders Successful!",
+          description: `All services have been activated successfully. You earned bonus points!`,
+        })
+        
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
       }
     } catch (error: any) {
-      console.error('Stripe checkout error:', error)
+      console.error('Order processing error:', error)
       toast({
-        title: "Checkout Failed",
-        description: error.message || "Failed to proceed to checkout. Please try again.",
+        title: "Order Failed",
+        description: error.message || "Failed to process orders. Please try again.",
         variant: "destructive",
       })
       setIsLoading(false)
@@ -311,21 +388,73 @@ export default function CartPage() {
           </div>
 
           {/* Cart Items */}
-          <Card className="rounded-xl shadow-md min-h-[110px]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">Virtual RM Service
-                {!removed && (
-                  <Button variant="ghost" size="icon" onClick={handleRemove} style={{cursor:'pointer'}} aria-label="Remove from cart">
-                    <Trash2 className="w-5 h-5 text-red-500" style={{cursor:'pointer'}} />
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-0">
-              <div className="text-gray-700 text-sm flex-1">Dedicated Relationship Manager for your job search journey.</div>
-              <div className="font-bold text-lg text-emerald-600">AED 2,500</div>
-            </CardContent>
-          </Card>
+          {cart.length === 0 ? (
+            <Card className="rounded-xl shadow-md min-h-[110px]">
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <ShoppingCart className="w-12 h-12 text-gray-400 mb-4" />
+                <p className="text-gray-600 text-lg font-medium mb-2">Your cart is empty</p>
+                <p className="text-gray-500 text-sm mb-4">Add some premium services to get started</p>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/jobseeker/premium')}
+                  className="text-emerald-600 border-emerald-600 hover:bg-emerald-50"
+                >
+                  Browse Premium Services
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {cart.map((item, index) => (
+                <Card key={index} className="rounded-xl shadow-md">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-base md:text-lg">
+                      <span>{item.title}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleRemove(item.title)} 
+                        style={{cursor:'pointer'}} 
+                        aria-label="Remove from cart"
+                      >
+                        <Trash2 className="w-5 h-5 text-red-500" style={{cursor:'pointer'}} />
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-0">
+                    <div className="text-gray-700 text-sm flex-1">
+                      {item.description}
+                      <div className="mt-1">
+                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                          item.paymentMethod === 'points' 
+                            ? 'bg-emerald-100 text-emerald-700' 
+                            : item.paymentMethod === 'hybrid'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {item.paymentMethod === 'points' ? 'Points Payment' : 
+                           item.paymentMethod === 'hybrid' ? 'Hybrid Payment' : 'AED Payment'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="font-bold text-lg">
+                      {item.paymentMethod === 'points' ? (
+                        <span className="text-emerald-600">{item.points} Points</span>
+                      ) : item.paymentMethod === 'hybrid' && item.hybridPayment ? (
+                        <div className="text-sm">
+                          <span className="text-emerald-600">{item.hybridPayment.pointsToUse} Points</span>
+                          <span className="text-gray-500"> + </span>
+                          <span className="text-blue-600">AED {item.hybridPayment.aedAmount}</span>
+                        </div>
+                      ) : (
+                        <span className="text-blue-600">AED {item.aedPrice}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Reward Points/Coupon */}
           <Card className="rounded-xl shadow-md min-h-[110px]">
@@ -346,7 +475,7 @@ export default function CartPage() {
                     onChange={e => handlePointsChange(e.target.value === "" ? "" : Number(e.target.value))}
                     placeholder="Reward Points"
                     className="max-w-[120px]"
-                    disabled={removed || isLoading}
+                    disabled={cart.length === 0 || isLoading}
                     style={{cursor:'pointer'}}
                   />
                   <Input
@@ -355,12 +484,12 @@ export default function CartPage() {
                     onChange={e => setCoupon(e.target.value)}
                     placeholder="Coupon Code"
                     className="max-w-[180px]"
-                    disabled={removed}
+                    disabled={cart.length === 0}
                     style={{cursor:'pointer'}}
                   />
                   <Button 
                     className="gradient-bg text-white rounded-full self-start" 
-                    disabled={removed || isLoading} 
+                    disabled={cart.length === 0 || isLoading} 
                     onClick={handleApplyPoints} 
                     style={{cursor:'pointer'}}
                   >
@@ -380,7 +509,7 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardDescription className="text-xs text-gray-500 pt-2 px-6 pb-4">
-              Use earned points to get discounts on premium services. 1 point = 1 AED discount.
+              Use earned points to reduce the points required for premium services. Enter points to apply as discount.
             </CardDescription>
           </Card>
 
@@ -390,31 +519,75 @@ export default function CartPage() {
               <CardTitle className="text-base md:text-lg">Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm pt-0">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>AED {subtotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Savings</span>
-                <span className="text-emerald-600">–AED {pointsDiscount.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Taxes</span>
-                <span>Inclusive</span>
-              </div>
+              {combinedPointsRequired > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span>Points Required</span>
+                    <span>{combinedPointsRequired.toLocaleString()} Points</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Points Discount</span>
+                    <span className="text-emerald-600">–{pointsDiscount.toLocaleString()} Points</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Available Points</span>
+                    <span>{userPoints.toLocaleString()} Points</span>
+                  </div>
+                </>
+              )}
+              
+              {combinedAEDRequired > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span>AED Amount</span>
+                    <span>AED {combinedAEDRequired.toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+              
+              {hybridItems.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                  <div className="text-xs font-medium text-yellow-800 mb-1">Hybrid Payment Breakdown:</div>
+                  {hybridItems.map((item, idx) => (
+                    <div key={idx} className="text-xs text-yellow-700">
+                      {item.title}: {item.hybridPayment?.pointsToUse} Points + AED {item.hybridPayment?.aedAmount}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
               <hr />
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Total</span>
-                <span>AED {total.toLocaleString()}</span>
+              
+              <div className="space-y-2">
+                {combinedPointsRequired > 0 && (
+                  <div className="flex justify-between font-semibold">
+                    <span>Points Total</span>
+                    <span className={finalPointsTotal > userPoints ? 'text-red-600' : 'text-emerald-600'}>
+                      {finalPointsTotal.toLocaleString()} Points
+                    </span>
+                  </div>
+                )}
+                
+                {combinedAEDRequired > 0 && (
+                  <div className="flex justify-between font-semibold">
+                    <span>AED Total</span>
+                    <span className="text-blue-600">
+                      AED {combinedAEDRequired.toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex justify-center mt-4">
                 <Button
                   className="gradient-bg text-white font-medium rounded-[8px] shadow-md hover:shadow-lg transition"
                   style={{ height: 40, paddingLeft: 24, paddingRight: 24, fontSize: 14, borderRadius: 8, width: 'fit-content' }}
                   onClick={handlePlaceOrder}
-                  disabled={removed || isLoading}
+                  disabled={cart.length === 0 || isLoading || (combinedPointsRequired > 0 && finalPointsTotal > userPoints)}
                 >
-                  {isLoading ? 'Loading...' : 'Place Order'}
+                  {isLoading ? 'Processing...' : 
+                   (combinedPointsRequired > 0 && finalPointsTotal > userPoints) ? 'Insufficient Points' :
+                   combinedAEDRequired > 0 ? `Proceed to Payment (AED ${combinedAEDRequired})` :
+                   'Purchase with Points'}
                 </Button>
               </div>
             </CardContent>

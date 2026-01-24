@@ -6,6 +6,16 @@ export type CartItem = {
   title: string
   description: string
   price: string
+  points?: number
+  aedPrice?: number
+  serviceType?: 'basic' | 'elite' | 'virtual-rm'
+  category?: 'rm-service' | 'other'
+  paymentMethod?: 'points' | 'aed' | 'hybrid'
+  hybridPayment?: {
+    pointsToUse: number
+    aedAmount: number
+    totalPointsRequired: number
+  }
 }
 
 interface CartContextType {

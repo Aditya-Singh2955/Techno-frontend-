@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { UserCheck, Mail, Calendar, FileText, TrendingUp, Star, CheckCircle, PlayCircle, ArrowRight, Award, Users } from "lucide-react"
+import { UserCheck, Mail, Calendar, FileText, TrendingUp, Star, CheckCircle, PlayCircle, ArrowRight, Award, Users, ShoppingCart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useCart } from "@/contexts/cart-context"
 
 // Dummy user for dropdown
 const user = { name: "Jobseeker", type: "jobseeker" }
@@ -42,6 +43,7 @@ export default function PremiumServicesPage() {
   const [purchasing, setPurchasing] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
+  const { cart, addToCart, isInCart } = useCart()
 
   // Fetch RM Service status and user points
   useEffect(() => {
@@ -161,6 +163,207 @@ export default function PremiumServicesPage() {
     }
   }
 
+  const calculateHybridPayment = (pointsRequired: number, userPoints: number) => {
+    if (userPoints >= pointsRequired) {
+      return null // No hybrid needed
+    }
+    
+    const pointsToUse = userPoints
+    const remainingPoints = pointsRequired - pointsToUse
+    const aedAmount = remainingPoints // 1 point = 1 AED conversion rate
+    
+    return {
+      pointsToUse,
+      aedAmount,
+      totalPointsRequired: pointsRequired
+    }
+  }
+
+  const handleAddToCart = (serviceType: 'basic' | 'elite', paymentMethod: 'points' | 'aed' | 'hybrid') => {
+    const serviceName = serviceType === 'basic' ? 'RM Basic Service' : 'RM Elite Service'
+    const pointsRequired = serviceType === 'basic' ? 800 : 1100
+    const aedPrice = serviceType === 'basic' ? 1500 : 2000 // AED pricing
+    
+    let cartItem: any = {
+      title: serviceName,
+      description: serviceType === 'basic' 
+        ? "Job Application Management, Email Communication, Profile Optimization, Basic Interview Support"
+        : "Everything in Basic + Priority Interview Scheduling, Advanced Profile Optimization, Dedicated Support Until Hired, Premium Placement Support",
+      serviceType: serviceType,
+      category: 'rm-service' as const,
+      paymentMethod: paymentMethod
+    }
+
+    if (paymentMethod === 'hybrid') {
+      const hybridPayment = calculateHybridPayment(pointsRequired, userPoints)
+      if (hybridPayment) {
+        cartItem.price = `${hybridPayment.pointsToUse} Points + AED ${hybridPayment.aedAmount}`
+        cartItem.hybridPayment = hybridPayment
+      }
+    } else if (paymentMethod === 'points') {
+      cartItem.price = "0"
+      cartItem.points = pointsRequired
+    } else {
+      cartItem.price = `${aedPrice}`
+      cartItem.aedPrice = aedPrice
+    }
+
+    if (isInCart(serviceName)) {
+      toast({
+        title: "Already in Cart",
+        description: `${serviceName} is already in your cart.`,
+        variant: "destructive",
+      })
+      return
+    }
+
+    addToCart(cartItem)
+    
+    let paymentDescription = ''
+    if (paymentMethod === 'hybrid' && cartItem.hybridPayment) {
+      paymentDescription = `${cartItem.hybridPayment.pointsToUse} Points + AED ${cartItem.hybridPayment.aedAmount}`
+    } else if (paymentMethod === 'points') {
+      paymentDescription = `${pointsRequired} Points`
+    } else {
+      paymentDescription = `AED ${aedPrice}`
+    }
+    
+    toast({
+      title: "Added to Cart",
+      description: `${serviceName} has been added to your cart (${paymentDescription}).`,
+    })
+  }
+
+  const handlePurchaseWithAED = async (serviceType: 'basic' | 'elite') => {
+    const serviceName = serviceType === 'basic' ? 'RM Basic Service' : 'RM Elite Service'
+    const aedPrice = serviceType === 'basic' ? 1500 : 2000
+    
+    setPurchasing(serviceType)
+    
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to purchase services.",
+          variant: "destructive",
+        })
+        router.push('/login')
+        return
+      }
+
+      // Call Stripe checkout endpoint for AED payment
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/rm-service/checkout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service: serviceName,
+          price: aedPrice,
+          pointsUsed: 0,
+          totalAmount: aedPrice,
+          paymentMethod: 'aed'
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to create checkout session')
+      }
+
+      if (data.success && data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error: any) {
+      console.error('AED purchase error:', error)
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "Failed to proceed to checkout. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setPurchasing(null)
+    }
+  }
+
+  const handleHybridPurchase = async (serviceType: 'basic' | 'elite') => {
+    const serviceName = serviceType === 'basic' ? 'RM Basic Service' : 'RM Elite Service'
+    const pointsRequired = serviceType === 'basic' ? 800 : 1100
+    const hybridPayment = calculateHybridPayment(pointsRequired, userPoints)
+    
+    if (!hybridPayment) {
+      toast({
+        title: "No Hybrid Payment Needed",
+        description: "You have enough points for full payment.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setPurchasing(serviceType)
+    
+    try {
+      const token = localStorage.getItem('findr_token') || localStorage.getItem('authToken')
+      if (!token) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to purchase services.",
+          variant: "destructive",
+        })
+        router.push('/login')
+        return
+      }
+
+      // Use regular checkout endpoint with hybrid payment data
+      const response = await fetch('https://techno-backend-a0s0.onrender.com/api/v1/rm-service/checkout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service: serviceName,
+          pointsUsed: hybridPayment.pointsToUse,
+          totalAmount: hybridPayment.aedAmount,
+          paymentMethod: 'hybrid',
+          hybridPayment: {
+            pointsToUse: hybridPayment.pointsToUse,
+            aedAmount: hybridPayment.aedAmount,
+            totalPointsRequired: hybridPayment.totalPointsRequired
+          }
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to create checkout session')
+      }
+
+      if (data.success && data.url) {
+        // Redirect to Stripe checkout for AED portion
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error: any) {
+      console.error('Hybrid purchase error:', error)
+      toast({
+        title: "Purchase Failed",
+        description: error.message || "Failed to proceed to checkout. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setPurchasing(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Sticky Navbar */}
@@ -254,8 +457,12 @@ export default function PremiumServicesPage() {
                 <CardHeader className="text-center pb-4">
                   <CardTitle className="text-2xl font-bold text-emerald-700">RM Basic Service</CardTitle>
                   <CardDescription className="text-lg mt-2">
-                    <span className="text-3xl font-bold text-emerald-600">800</span>
-                    <span className="text-gray-600 ml-2">Points</span>
+                    <div className="space-y-1">
+                      <div>
+                        <span className="text-3xl font-bold text-emerald-600">800</span>
+                        <span className="text-gray-600 ml-2">Points</span>
+                      </div>
+                    </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -277,13 +484,44 @@ export default function PremiumServicesPage() {
                       <span>Basic Interview Support</span>
                     </li>
                   </ul>
-                  <Button
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => handlePurchaseWithPoints('basic')}
-                    disabled={isLoading || purchasing !== null || userPoints < 800}
-                  >
-                    {purchasing === 'basic' ? 'Processing...' : userPoints < 800 ? `Need ${800 - userPoints} more points` : 'Purchase with Points'}
-                  </Button>
+                  <div className="space-y-2">
+                    {userPoints >= 800 ? (
+                      <Button
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => handleAddToCart('basic', 'points')}
+                        disabled={isInCart('RM Basic Service')}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        {isInCart('RM Basic Service') ? 'In Cart' : 'Add to Cart (800 Points)'}
+                      </Button>
+                    ) : userPoints > 0 ? (
+                      <>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                          <div className="font-medium text-yellow-800 mb-1">Hybrid Payment Available</div>
+                          <div className="text-yellow-700">
+                            Use your {userPoints} points + AED {800 - userPoints}
+                          </div>
+                        </div>
+                        <Button
+                          className="w-full bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white"
+                          onClick={() => handleAddToCart('basic', 'hybrid')}
+                          disabled={isInCart('RM Basic Service')}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          {isInCart('RM Basic Service') ? 'In Cart' : `Add to Cart (${userPoints} Points + AED ${800 - userPoints})`}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => handleAddToCart('basic', 'aed')}
+                        disabled={isInCart('RM Basic Service')}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        {isInCart('RM Basic Service') ? 'In Cart' : 'Add to Cart (AED 1,500)'}
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -295,8 +533,12 @@ export default function PremiumServicesPage() {
                 <CardHeader className="text-center pb-4">
                   <CardTitle className="text-2xl font-bold text-purple-700">RM Elite Service</CardTitle>
                   <CardDescription className="text-lg mt-2">
-                    <span className="text-3xl font-bold text-purple-600">1,100</span>
-                    <span className="text-gray-600 ml-2">Points</span>
+                    <div className="space-y-1">
+                      <div>
+                        <span className="text-3xl font-bold text-purple-600">1,100</span>
+                        <span className="text-gray-600 ml-2">Points</span>
+                      </div>
+                    </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -322,13 +564,44 @@ export default function PremiumServicesPage() {
                       <span>Premium Placement Support</span>
                     </li>
                   </ul>
-                  <Button
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                    onClick={() => handlePurchaseWithPoints('elite')}
-                    disabled={isLoading || purchasing !== null || userPoints < 1100}
-                  >
-                    {purchasing === 'elite' ? 'Processing...' : userPoints < 1100 ? `Need ${1100 - userPoints} more points` : 'Purchase with Points'}
-                  </Button>
+                  <div className="space-y-2">
+                    {userPoints >= 1100 ? (
+                      <Button
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => handleAddToCart('elite', 'points')}
+                        disabled={isInCart('RM Elite Service')}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        {isInCart('RM Elite Service') ? 'In Cart' : 'Add to Cart (1,100 Points)'}
+                      </Button>
+                    ) : userPoints > 0 ? (
+                      <>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                          <div className="font-medium text-yellow-800 mb-1">Hybrid Payment Available</div>
+                          <div className="text-yellow-700">
+                            Use your {userPoints} points + AED {1100 - userPoints}
+                          </div>
+                        </div>
+                        <Button
+                          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                          onClick={() => handleAddToCart('elite', 'hybrid')}
+                          disabled={isInCart('RM Elite Service')}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          {isInCart('RM Elite Service') ? 'In Cart' : `Add to Cart (${userPoints} Points + AED ${1100 - userPoints})`}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => handleAddToCart('elite', 'aed')}
+                        disabled={isInCart('RM Elite Service')}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        {isInCart('RM Elite Service') ? 'In Cart' : 'Add to Cart (AED 2,000)'}
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
