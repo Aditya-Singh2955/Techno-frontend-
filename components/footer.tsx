@@ -27,12 +27,14 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Company Info */}
-          <div className="space-y-6">
+          <div className="space-y-6"> 
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center card-shadow">
-                <span className="text-white font-bold text-lg">F</span>
-              </div>
-              <span className="text-2xl font-bold">Findr</span>
+            <img
+              src="/Footer_Logo.png"
+              alt="Findr"
+              className="h-10 w-auto object-contain sm:h-12"
+            />
+            <span className="sr-only">Findr</span>
             </div>
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-4">

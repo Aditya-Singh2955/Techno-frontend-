@@ -74,10 +74,12 @@ export function Navbar() {
             href={user ? (user.type === "jobseeker" ? "/jobseeker/dashboard" : "/employer/dashboard") : "/"} 
             className="flex items-center space-x-2"
           >
-            <div className="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center card-shadow">
-              <span className="text-white font-bold text-lg">F</span>
-            </div>
-            <span className="text-xl font-bold gradient-text">Findr</span>
+            <img
+              src="/Findr_Logo.jpeg"
+              alt="Findr"
+              className="w-24 h-24 object-contain"
+            />
+            <span className="sr-only">Findr</span>
           </Link>
 
           {/* Desktop Navigation */}
